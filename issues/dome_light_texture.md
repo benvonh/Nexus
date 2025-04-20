@@ -1,0 +1,1 @@
+For some reason, rendering the dome light texture on Windows 11 (presumably) doesn't work even though it does for `usdview`. I have tried setting `domeLightCameraVisibility` to true even though it should be true by default. 
