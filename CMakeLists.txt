@@ -27,9 +27,13 @@ FetchContent_Declare(ImGUI
   GIT_REPOSITORY https://github.com/ocornut/imgui
   GIT_TAG v1.91.8-docking)
 
-FetchContent_MakeAvailable(SDL3 ImGUI)
+FetchContent_Declare(STB
+  GIT_REPOSITORY https://github.com/nothings/stb)
+
+FetchContent_MakeAvailable(SDL3 ImGUI STB)
 
 set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/imgui-src)
+set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/stb-src)
 
 find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED PATHS C:/usd)
@@ -41,13 +45,13 @@ find_package(urdf REQUIRED)
 
 add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui.cpp
+  ${ImGUI_SOURCE_DIR}/imgui_demo.cpp
   ${ImGUI_SOURCE_DIR}/imgui_draw.cpp
   ${ImGUI_SOURCE_DIR}/imgui_tables.cpp
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
   src/window.cpp
-  src/scene.cpp
   src/main.cpp)
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
@@ -57,10 +61,11 @@ target_include_directories(${TARGET} PUBLIC
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 target_include_directories(${TARGET} PRIVATE 
-  ${ImGUI_SOURCE_DIR}
-  ${ImGUI_SOURCE_DIR}/backends
   ${SDL3_SOURCE_DIR}/include
-  ${PXR_INCLUDE_DIRS})
+  ${ImGUI_SOURCE_DIR}/backends
+  ${ImGUI_SOURCE_DIR}
+  ${PXR_INCLUDE_DIRS}
+  ${STB_SOURCE_DIR})
 
 target_link_libraries(${TARGET}
   ${PXR_LIBRARIES}

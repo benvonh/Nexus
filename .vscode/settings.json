@@ -89,5 +89,6 @@
     "xtree": "cpp",
     "xutility": "cpp",
     "stacktrace": "cpp"
-  }
+  },
+  "C_Cpp.intelliSenseEngine": "Tag Parser"
 }
