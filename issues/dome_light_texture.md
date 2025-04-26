@@ -1,1 +1,3 @@
-For some reason, rendering the dome light texture on Windows 11 (presumably) doesn't work even though it does for `usdview`. I have tried setting `domeLightCameraVisibility` to true even though it should be true by default. 
+For some reason, rendering the dome light texture on Windows 11 (presumably) doesn't work even though it does for `usdview`. I have tried setting `domeLightCameraVisibility` to true even though it should be true by default.
+
+The problem was solved after moving to a different method of rendering. Instead of letting the USD engine render directly on to the SDL window, the USD renders to a texture which ImGUI renders in an Image widget.

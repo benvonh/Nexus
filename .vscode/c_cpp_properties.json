@@ -3,6 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
+                "${workspaceFolder}/src",
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/build/digital_twin/_deps/imgui-src",
                 "${workspaceFolder}/build/digital_twin/_deps/imgui-src/backends",

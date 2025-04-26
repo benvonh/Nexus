@@ -3,8 +3,8 @@ project(digital_twin)
 
 set(TARGET app)
 set(CMAKE_CXX_STANDARD 23)
-set(SDL_STATIC ON CACHE BOOL "Enable static library build" FORCE)
-set(SDL_SHARED OFF CACHE BOOL "Disable shared library build" FORCE)
+set(SDL_STATIC ON CACHE BOOL "Enable SDL static library build" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared library build" FORCE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -51,13 +51,16 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-  src/window.cpp
+  src/dt/view/camera.cpp
+  src/dt/view/render.cpp
+  src/dt/view/window.cpp
   src/main.cpp)
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
 
 target_include_directories(${TARGET} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 target_include_directories(${TARGET} PRIVATE 
