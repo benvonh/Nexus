@@ -60,12 +60,12 @@ void Render::UpdateCameraState(const pxr::GfFrustum &frustum)
 unsigned long long Render::operator()()
 {
   {
-    auto entry = scene::Manager::GetStageEntry();
+    auto permit = scene::Manager::GetStagePermit();
 
-    if (!entry.stage)
+    if (!permit.stage)
       throw std::runtime_error("USD stage is null");
 
-    this->engine->Render(entry.stage->GetPseudoRoot(), this->params);
+    this->engine->Render(permit.stage->GetPseudoRoot(), this->params);
   }
 
   auto handle = this->engine->GetAovTexture(pxr::HdAovTokens->color);

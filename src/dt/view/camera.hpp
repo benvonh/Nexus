@@ -70,10 +70,10 @@ public:
       translate = rotation.GetRow(0) * step;
     }
     if constexpr (D == Direction::UP) {
-      translate[1] = step;
+      translate[2] = step;
     }
     if constexpr (D == Direction::DOWN) {
-      translate[1] = -step;
+      translate[2] = -step;
     }
 
     transform.SetTranslateOnly(translation + translate);
@@ -86,12 +86,12 @@ public:
     
     this->yaw += dx * q;
     this->pitch += dy * q;
-    this->pitch = std::clamp(this->pitch, -90.0, 90.0);
+    this->pitch = std::clamp(this->pitch, 0.0, 180.0);
 
-    pxr::GfRotation rotationY(pxr::GfVec3d(0, 1, 0), this->yaw);
+    pxr::GfRotation rotationZ(pxr::GfVec3d(0, 0, 1), this->yaw);
     pxr::GfRotation rotationX(pxr::GfVec3d(1, 0, 0), this->pitch);
 
-    pxr::GfMatrix3d rotation = rotationX * rotationY;
+    pxr::GfMatrix3d rotation = rotationX * rotationZ;
     pxr::GfMatrix4d transform = this->data.GetTransform();
 
     transform.SetRotateOnly(rotation);
@@ -100,7 +100,7 @@ public:
 
 private:
   double yaw = 0.0;
-  double pitch = 0.0;
+  double pitch = 90.0;
 };
 } // namespace view
 } // namespace dt

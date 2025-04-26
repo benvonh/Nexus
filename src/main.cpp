@@ -6,9 +6,9 @@
 #include "dt/view/window.hpp"
 #include "rclcpp/rclcpp.hpp"
 
-#include <thread>
 #include <iostream>
 #include <stacktrace>
+#include <thread>
 
 
 void ros_entry()
@@ -21,10 +21,10 @@ int main(int argc, char *argv[])
 {
   rclcpp::init(argc, argv);
 
-  std::jthread thread(ros_entry);
-
   dt::view::Window window;
   dt::view::Render render;
+
+  std::jthread thread(ros_entry);
 
   // TODO: Remove later
   dt::scene::Manager::DebugStage();

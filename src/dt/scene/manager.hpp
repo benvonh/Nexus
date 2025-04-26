@@ -1,8 +1,10 @@
 #pragma once
+#include "dt/scene/robot.hpp"
 #include "pxr/usd/sdf/timeCode.h"
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usdGeom/camera.h"
 #include "pxr/usd/usdGeom/cylinder.h"
+#include "pxr/usd/usdGeom/metrics.h"
 #include "pxr/usd/usdGeom/sphere.h"
 #include "pxr/usd/usdGeom/xformOp.h"
 #include "pxr/usd/usdLux/domeLight.h"
@@ -22,6 +24,31 @@ enum class Action
   SAVE,
   EXPORT
 };
+
+template <typename T>
+struct Permit
+{
+  Permit(std::mutex &m, T &r) : guard(m), it(r) {}
+  std::lock_guard<std::mutex> guard;
+  T &it;
+};
+
+template <>
+struct Permit<pxr::UsdStageRefPtr>
+{
+  Permit(std::mutex &m, pxr::UsdStageRefPtr &r) : guard(m), stage(r) {}
+  std::lock_guard<std::mutex> guard;
+  pxr::UsdStageRefPtr &stage;
+};
+
+template <>
+struct Permit<Robot>
+{
+  Permit(std::mutex &m, Robot &r) : guard(m), robot(r) {}
+  std::lock_guard<std::mutex> guard;
+  Robot &robot;
+};
+
 class Manager final
 {
   /// @brief An alias to the class itself which has two meanings:
@@ -30,15 +57,6 @@ class Manager final
   using s = Manager;
 
 public:
-  using Guard = std::lock_guard<std::mutex>;
-
-  struct Entry
-  {
-    Entry(std::mutex &m, pxr::UsdStageRefPtr &r) : lock(m), stage(r) {}
-    std::lock_guard<std::mutex> lock;
-    pxr::UsdStageRefPtr &stage;
-  };
-
   static inline const auto START = std::chrono::steady_clock::now();
 
   Manager() = delete;
@@ -86,6 +104,9 @@ public:
 
   static void DebugStage()
   {
+    if (!pxr::UsdGeomSetStageUpAxis(s::stage, pxr::UsdGeomTokens->z))
+      throw std::runtime_error("wtf no z??");
+
     auto camera = pxr::UsdGeomCamera::Define(s::stage, pxr::SdfPath("/RandomCamera"));
     camera.CreateProjectionAttr(pxr::VtValue(pxr::TfToken("perspective")));
     camera.CreateFocalLengthAttr(pxr::VtValue(18.f));
@@ -104,7 +125,7 @@ public:
     dome.CreateIntensityAttr().Set(1.f);
     dome.CreateExposureAttr().Set(1.f);
     dome.CreateTextureFormatAttr().Set(pxr::TfToken("latlong"));
-
+    dome.OrientToStageUpAxis();
 
     // TODO: Temporary
     pxr::UsdGeomCylinder axisX = pxr::UsdGeomCylinder::Define(s::stage, pxr::SdfPath("/Xaxis"));
@@ -113,15 +134,15 @@ public:
     axisX.CreateAxisAttr(pxr::VtValue(pxr::TfToken("X")));
     axisY.CreateAxisAttr(pxr::VtValue(pxr::TfToken("Y")));
     axisZ.CreateAxisAttr(pxr::VtValue(pxr::TfToken("Z")));
-    axisX.CreateHeightAttr(pxr::VtValue(1.0));
-    axisY.CreateHeightAttr(pxr::VtValue(1.0));
-    axisZ.CreateHeightAttr(pxr::VtValue(1.0));
-    axisX.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisY.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisZ.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisX.AddTranslateXOp().Set(0.5);
-    axisY.AddTranslateYOp().Set(0.5);
-    axisZ.AddTranslateZOp().Set(0.5);
+    axisX.CreateHeightAttr(pxr::VtValue(0.6));
+    axisY.CreateHeightAttr(pxr::VtValue(0.6));
+    axisZ.CreateHeightAttr(pxr::VtValue(0.6));
+    axisX.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisY.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisZ.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisX.AddTranslateXOp().Set(0.3);
+    axisY.AddTranslateYOp().Set(0.3);
+    axisZ.AddTranslateZOp().Set(0.3);
     axisX.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(1, 0, 0)));
     axisY.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0, 1, 0)));
     axisZ.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0, 0, 1)));
@@ -132,24 +153,30 @@ public:
     axisX1.CreateAxisAttr(pxr::VtValue(pxr::TfToken("X")));
     axisY1.CreateAxisAttr(pxr::VtValue(pxr::TfToken("Y")));
     axisZ1.CreateAxisAttr(pxr::VtValue(pxr::TfToken("Z")));
-    axisX1.CreateHeightAttr(pxr::VtValue(1.0));
-    axisY1.CreateHeightAttr(pxr::VtValue(1.0));
-    axisZ1.CreateHeightAttr(pxr::VtValue(1.0));
-    axisX1.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisY1.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisZ1.CreateRadiusAttr(pxr::VtValue(0.1));
-    axisX1.AddTranslateXOp().Set(10.5);
+    axisX1.CreateHeightAttr(pxr::VtValue(0.6));
+    axisY1.CreateHeightAttr(pxr::VtValue(0.6));
+    axisZ1.CreateHeightAttr(pxr::VtValue(0.6));
+    axisX1.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisY1.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisZ1.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisX1.AddTranslateXOp().Set(10.3);
     axisY1.AddTranslateXOp().Set(10.0);
-    axisY1.AddTranslateYOp().Set(0.5);
+    axisY1.AddTranslateYOp().Set(0.3);
     axisZ1.AddTranslateXOp().Set(10.0);
-    axisZ1.AddTranslateZOp().Set(0.5);
+    axisZ1.AddTranslateZOp().Set(0.3);
     axisX1.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(1, 0, 0)));
     axisY1.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0, 1, 0)));
     axisZ1.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0, 0, 1)));
   }
 
-  static auto GetLockGuard() { return Guard(s::mutex); }
-  static auto GetStageEntry() { return Entry(s::mutex, s::stage); }
+  static std::lock_guard<std::mutex> GetLockGuard()
+  { return std::lock_guard<std::mutex>(s::mutex); }
+
+  static Permit<pxr::UsdStageRefPtr> GetStagePermit()
+  { return Permit(s::mutex, s::stage); }
+
+  static Permit<Robot> GetRobotPermit()
+  { return Permit(s::mutex, s::robot); }
 
   static double GetTime()
   {
@@ -161,7 +188,7 @@ public:
 private:
   static inline std::mutex mutex;
   static inline pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateInMemory();
-  // static inline pxr::UsdStageRefPtr stage = pxr::UsdStage::Open("temp.usdc");
+  static inline Robot robot = GetStagePermit();
 };
 } // namespace scene
 } // namespace dt

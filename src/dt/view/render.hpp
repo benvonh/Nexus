@@ -16,8 +16,8 @@ class Render
   using Engine = pxr::UsdImagingGLEngine;
   using Params = pxr::UsdImagingGLRenderParams;
   
-  static constexpr int DEFAULT_WIDTH = 640;
-  static constexpr int DEFAULT_HEIGHT = 360;
+  static constexpr int DEFAULT_WIDTH = 1280;
+  static constexpr int DEFAULT_HEIGHT = 720;
 
 public:
   static inline const char *DRAW_MODES[] = {

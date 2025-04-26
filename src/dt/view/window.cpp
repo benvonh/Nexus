@@ -133,6 +133,11 @@ bool Window::Update()
           this->HandleFile<scene::Action::EXPORT>();
           goto FRAME_START;
         }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Import URDF"))
+        {
+          
+        }
         ImGui::EndMenu();
       }
       ImGui::EndMainMenuBar();
@@ -178,9 +183,9 @@ bool Window::Update()
         };
         
       {
-        auto entry = scene::Manager::GetStageEntry();
+        auto permit = scene::Manager::GetStagePermit();
 
-        for (const auto &prim : entry.stage->Traverse())
+        for (const auto &prim : permit.stage->Traverse())
         {
           if (prim.IsA<pxr::UsdGeomCamera>())
           {
@@ -282,8 +287,8 @@ bool Window::Update()
       // TODO: Temporary
       ImGui::Text("FPS: %d", (int)(1.f / io.DeltaTime));
 
-      auto entry = scene::Manager::GetStageEntry();
-      auto range = entry.stage->Traverse();
+      auto permit = scene::Manager::GetStagePermit();
+      auto range = permit.stage->Traverse();
 
       for (auto it = range.begin(); it != range.cend(); ++it)
       {
