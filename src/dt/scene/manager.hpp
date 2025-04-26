@@ -155,7 +155,7 @@ public:
   {
     const auto dur = std::chrono::steady_clock::now() - START;
     const auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(dur);
-    return static_cast<double>(ns.count()) * 1e-9;
+    return ns.count() * 1e-9;
   }
 
 private:

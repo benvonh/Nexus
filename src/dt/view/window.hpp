@@ -43,12 +43,15 @@ private:
 
     struct CallbackData
     {
+      bool cancel = false;
       std::string file;
-      std::atomic<bool> done;
+      std::atomic<bool> done = false;
     };
 
     auto callback = [](void *userdata, const char * const *filelist, int filter)
       {
+        CallbackData *data = static_cast<CallbackData *>(userdata);
+
         if (filelist == nullptr)
         {
           SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
@@ -56,17 +59,17 @@ private:
         if (filelist[0] == nullptr)
         {
           SDL_Log("No file");
+          data->cancel = true;
         }
         else
         {
           SDL_Log("File: %s", filelist[0]);
-          CallbackData *data = static_cast<CallbackData *>(userdata);
           data->file = filelist[0];
-          data->done = true;
         }
+        data->done = true;
       };
 
-    CallbackData data{.done = false};
+    CallbackData data;
 
     const SDL_DialogFileFilter filters[] = {
       { "USD Files", "usd;usda;usdc;usdz" },
@@ -74,25 +77,24 @@ private:
 
     constexpr auto size = std::size(filters);
 
-    if constexpr (A == scene::Action::NEW)
-    {
+    if constexpr (A == scene::Action::NEW) {
       SaveFile(callback, (void *)&data, this->window, filters, size, nullptr);
     }
-    if constexpr (A == scene::Action::OPEN)
-    {
+    if constexpr (A == scene::Action::OPEN) {
       OpenFile(callback, (void *)&data, this->window, filters, size, nullptr, false);
     }
-    if constexpr (A == scene::Action::SAVE)
-    {
+    if constexpr (A == scene::Action::SAVE) {
       scene::Manager::HandleStage<scene::Action::SAVE>();
       return;
     }
-    if constexpr (A == scene::Action::EXPORT)
-    {
+    if constexpr (A == scene::Action::EXPORT) {
       SaveFile(callback, (void *)&data, this->window, filters, size, nullptr);
     }
 
     while (this->operative && !data.done) { this->Update(); }
+
+    if (data.cancel)
+      return;
 
     if constexpr (A == scene::Action::NEW)
     {
