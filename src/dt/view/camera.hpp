@@ -13,6 +13,8 @@ namespace view
 class Camera
 {
 public:
+  int index = 0;
+  bool free = true;
   float speed = 10.0;
   float sensitivity = 10.0;
   pxr::GfCamera data;

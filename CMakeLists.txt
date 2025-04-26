@@ -51,6 +51,7 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+  src/dt/bridge/node.cpp
   src/dt/view/camera.cpp
   src/dt/view/render.cpp
   src/dt/view/window.cpp

@@ -90,5 +90,8 @@
     "xutility": "cpp",
     "stacktrace": "cpp"
   },
-  "C_Cpp.intelliSenseEngine": "Tag Parser"
+  "C_Cpp.intelliSenseEngine": "Tag Parser",
+  "files.watcherExclude": {
+    "C:\\usd\\include": true
+  }
 }

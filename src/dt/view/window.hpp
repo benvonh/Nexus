@@ -27,14 +27,13 @@ public:
   void operator()(Render &render);
 
 private:
-  bool operative = true;
   bool immersive = false;
   Render *render_ptr = nullptr;
   SDL_Window *window = nullptr;
   SDL_GLContext context = nullptr;
   Camera camera;
 
-  void Update();
+  bool Update();
 
   template <scene::Action A>
   void HandleFile()
@@ -91,10 +90,9 @@ private:
       SaveFile(callback, (void *)&data, this->window, filters, size, nullptr);
     }
 
-    while (this->operative && !data.done) { this->Update(); }
+    while (this->Update() && !data.done);
 
-    if (data.cancel)
-      return;
+    if (data.cancel) return;
 
     if constexpr (A == scene::Action::NEW)
     {

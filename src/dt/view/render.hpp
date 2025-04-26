@@ -12,8 +12,13 @@ namespace view
 {
 class Render
 {
+  using Size = pxr::GfVec2i;
   using Engine = pxr::UsdImagingGLEngine;
   using Params = pxr::UsdImagingGLRenderParams;
+  
+  static constexpr int DEFAULT_WIDTH = 640;
+  static constexpr int DEFAULT_HEIGHT = 360;
+
 public:
   static inline const char *DRAW_MODES[] = {
     "Points",
@@ -37,6 +42,7 @@ public:
   static constexpr auto DRAW_MODES_SIZE = std::size(DRAW_MODES);
   static constexpr auto CULL_STYLES_SIZE = std::size(CULL_STYLES);
 
+  Size size;
   Params params;
   bool domeLight;
 
@@ -48,16 +54,14 @@ public:
   Render &operator=(const Render &) = delete;
 
   void Reset();
+  void UpdateSize();
   void UpdateDomeLight();
   void UpdateCameraPath(const pxr::SdfPath &path);
   void UpdateCameraState(const pxr::GfFrustum &frustum);
-  void UpdateSize(const int width, const int height);
 
   unsigned long long operator()();
 
 private:
-  pxr::SdfPath path;
-  pxr::GfVec2i size;
   std::unique_ptr<Engine> engine;
 };
 } // namespace view

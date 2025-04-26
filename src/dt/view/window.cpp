@@ -1,15 +1,14 @@
 #include "dt/view/window.hpp"
 #include "dt/scene/manager.hpp"
-
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
 #include "stb_image_write.h"
-
 #include "pxr/usd/usd/primRange.h"
-
 #include <format>
 #include <stacktrace>
+#include <string>
+#include <vector>
 
 #define THROW(msg)                \
   do { throw std::runtime_error(  \
@@ -82,11 +81,18 @@ void Window::operator()(Render &render)
 {
   this->render_ptr = &render;
   
-  while (this->operative) { this->Update(); }
+  // while (this->operative) { this->Update(); }
+  while (this->Update());
 }
 
-void Window::Update()
+bool Window::Update()
 {
+  if (SDL_GetWindowFlags(this->window) & SDL_WINDOW_MINIMIZED)
+  {
+    SDL_Log("Window is minimized... updating at 10 fps");
+    SDL_Delay(100);
+  }
+
   ImGuiIO &io = ImGui::GetIO();
   Render &render = *this->render_ptr;
 
@@ -131,57 +137,139 @@ void Window::Update()
       }
       ImGui::EndMainMenuBar();
     }
+    else throw std::runtime_error("Main Menu Bar");
 
     ///////////////////////////////////////////////////////////////////////////
     // USD Render Parameter
     ///////////////////////////////////////////////////////////////////////////
     ImGui::Begin("Render Parameter");
-    {
-      render.params.frame = scene::Manager::GetTime();
-      ImGui::Checkbox("Lighting", &render.params.enableLighting);
-      ImGui::Checkbox("Scene Lights", &render.params.enableSceneLights);
-      ImGui::Checkbox("Scene Materials", &render.params.enableSceneMaterials);
-      ImGui::Checkbox("Show Guides", &render.params.showGuides);
-      ImGui::Checkbox("Show Proxy", &render.params.showProxy);
-      ImGui::Checkbox("Show Render", &render.params.showRender);
-      ImGui::Checkbox("Force Refresh", &render.params.forceRefresh);
-      ImGui::Checkbox("Sample Alpha to Coverage", &render.params.enableSampleAlphaToCoverage);
-      ImGui::Checkbox("Gamma Correct Colors", &render.params.gammaCorrectColors);
+    
+    render.params.frame = scene::Manager::GetTime();
+    ImGui::Checkbox("Lighting", &render.params.enableLighting);
+    ImGui::Checkbox("Scene Lights", &render.params.enableSceneLights);
+    ImGui::Checkbox("Scene Materials", &render.params.enableSceneMaterials);
+    ImGui::Checkbox("Show Guides", &render.params.showGuides);
+    ImGui::Checkbox("Show Proxy", &render.params.showProxy);
+    ImGui::Checkbox("Show Render", &render.params.showRender);
+    ImGui::Checkbox("Force Refresh", &render.params.forceRefresh);
+    ImGui::Checkbox("Sample Alpha to Coverage", &render.params.enableSampleAlphaToCoverage);
+    ImGui::Checkbox("Gamma Correct Colors", &render.params.gammaCorrectColors);
 
-      if (ImGui::Checkbox("Dome Light Camera Visibility", &render.domeLight))
+    if (ImGui::Checkbox("Dome Light Camera Visibility", &render.domeLight))
+    {
+      render.UpdateDomeLight();
+    }
+
+    ImGui::ColorEdit4("Clear Color", &render.params.clearColor[0]);
+    ImGui::SliderFloat("Complexity", &render.params.complexity, 1.f, 1.5f, "%.1f");
+    ImGui::Combo("Draw Mode", (int*)&render.params.drawMode, render.DRAW_MODES, render.DRAW_MODES_SIZE);
+    ImGui::Combo("Cull Style", (int*)&render.params.cullStyle, render.CULL_STYLES, render.CULL_STYLES_SIZE);
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    {
+      std::vector<pxr::SdfPath> paths;
+
+      auto getter = [](void *user_data, int idx) -> const char *
+        {
+          const auto *paths = (std::vector<pxr::SdfPath>*)(user_data);
+          return (*paths)[idx].GetText();
+        };
+        
       {
-        render.UpdateDomeLight();
+        auto entry = scene::Manager::GetStageEntry();
+
+        for (const auto &prim : entry.stage->Traverse())
+        {
+          if (prim.IsA<pxr::UsdGeomCamera>())
+          {
+            paths.push_back(prim.GetPath());
+          }
+        }
       }
-      ImGui::SliderFloat("Complexity", &render.params.complexity, 1.f, 1.5f, "%.1f");
-      ImGui::Combo("Draw Mode", (int*)&render.params.drawMode, render.DRAW_MODES, render.DRAW_MODES_SIZE);
-      ImGui::Combo("Cull Style", (int*)&render.params.cullStyle, render.CULL_STYLES, render.CULL_STYLES_SIZE);
-      ImGui::ColorEdit4("Clear Color", &render.params.clearColor[0]);
+      this->camera.index = this->camera.index < paths.size() ? this->camera.index : 0;
+
+      ImGui::Checkbox("Free Camera", &this->camera.free);
+      ImGui::Combo("Camera Path", &this->camera.index, getter, (void *)&paths, paths.size());
+      
+      if (ImGui::InputInt2("Resolution", &render.size[0]))
+      {
+        render.UpdateSize();
+      }
+
+      this->camera.free = paths.empty() ? true : this->camera.free;
+
+      if (this->camera.free)
+      {
+        render.UpdateCameraState(this->camera.data.GetFrustum());
+      }
+      else
+      {
+        render.UpdateCameraPath(paths[this->camera.index]);
+      }
     }
     ImGui::End();
 
     ///////////////////////////////////////////////////////////////////////////
     // USD Render Viewport
     ///////////////////////////////////////////////////////////////////////////
-    ImGui::Begin("USD Viewport");
+    ImGui::Begin("USD Viewport", nullptr, ImGuiWindowFlags_NoDecoration);
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
     {
-      if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(0))
+      // Click in USD world
+      if (this->immersive)
       {
-        // Click in USD world
-        if (this->immersive)
-        {
 
+      }
+      // Immerse in USD world
+      else
+      {
+        SDL_SetWindowRelativeMouseMode(this->window, true);
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+        this->immersive = true;
+      }
+    }
+    {
+      ImVec2 size(render.size[0], render.size[1]);
+      ImVec2 space = ImGui::GetContentRegionAvail();
+      ImVec2 offset = ImGui::GetCursorPos();
+
+      switch ((size.y > space.y) << 1 | (size.x > space.x))
+      {
+      case 0b00:
+        offset.x += (space.x - size.x) / 2;
+        offset.y += (space.y - size.y) / 2;
+        break;
+      case 0b01:
+        size.x = space.x;
+        size.y *= space.x / size.x;
+        offset.y += (space.y - size.y) / 2;
+        break;
+      case 0b10:
+        size.y = space.y;
+        size.x *= space.y / size.y;
+        offset.x += (space.x - size.x) / 2;
+        break;
+      case 0b11:
+        float Sx = space.x / size.x;
+        float Sy = space.y / size.y;
+        if (Sx < Sy)
+        {
+          size.x = space.x;
+          size.y *= Sx;
+          offset.y += (space.y - size.y) / 2;
         }
-        // Immerse in USD world
         else
         {
-          SDL_SetWindowRelativeMouseMode(this->window, true);
-          ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
-          this->immersive = true;
+          size.y = space.y;
+          size.x *= Sy;
+          offset.x += (space.x - size.x) / 2;
         }
+        break;
       }
-      ImVec2 size = ImGui::GetContentRegionAvail();
-      render.UpdateSize(size.x, size.y);
-      render.UpdateCameraState(this->camera.data.GetFrustum());
+
+      ImGui::SetCursorPos(offset);
       ImGui::Image(ImTextureID(render()), size, ImVec2(0, 1), ImVec2(1, 0));
     }
     ImGui::End();
@@ -207,11 +295,11 @@ void Window::Update()
         {
           if (it->GetChildren().empty())
           {
-            ImGui::Text(it->GetTypeName().GetText());
+            ImGui::Text("%s (%s)", it->GetDisplayName().c_str(), it->GetTypeName().GetText());
           }
           else
           {
-            ImGui::TreeNode(it->GetTypeName().GetText());
+            ImGui::TreeNode("%s (%s)", it->GetDisplayName().c_str(), it->GetTypeName().GetText());
           }
         }
       }
@@ -242,10 +330,7 @@ void Window::Update()
       if (event.type == SDL_EVENT_QUIT ||
           (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
            event.window.windowID == SDL_GetWindowID(this->window)))
-      {
-        this->operative = false;
-        return;
-      }
+        return false;
 
       if (event.type == SDL_EVENT_KEY_DOWN &&
           event.key.scancode == SDL_SCANCODE_Q)
@@ -302,6 +387,7 @@ void Window::Update()
     if (!MessageBox(SDL_MESSAGEBOX_ERROR, e.what(), string.c_str(), this->window))
       throw std::runtime_error(SDL_GetError());
   }
+  return true;
 }
 } // namespace view
 } // namespace dt

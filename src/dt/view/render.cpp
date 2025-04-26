@@ -10,8 +10,7 @@ void Render::Reset()
 {
   this->domeLight = true;
 
-  this->path = pxr::SdfPath();
-  this->size = pxr::GfVec2i(0);
+  this->size = Size(DEFAULT_WIDTH, DEFAULT_HEIGHT);
 
   this->params = Params();
   this->params.enableLighting = true;
@@ -29,6 +28,16 @@ void Render::Reset()
 
   if (!this->engine->SetRendererAov(pxr::HdAovTokens->color))
     throw std::runtime_error("AOV is not color");
+
+  // Call again
+  this->UpdateSize();
+}
+
+void Render::UpdateSize()
+{
+  const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
+  this->engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
+  this->engine->SetRenderBufferSize(this->size);
 }
 
 void Render::UpdateDomeLight()
@@ -37,32 +46,15 @@ void Render::UpdateDomeLight()
   this->engine->SetRendererSetting(token, pxr::VtValue(this->domeLight));
 }
 
+void Render::UpdateCameraPath(const pxr::SdfPath &path)
+{
+  this->engine->SetCameraPath(path);
+}
+
 void Render::UpdateCameraState(const pxr::GfFrustum &frustum)
 {
   this->engine->SetCameraState(frustum.ComputeViewMatrix(),
                                frustum.ComputeProjectionMatrix());
-}
-
-void Render::UpdateCameraPath(const pxr::SdfPath &path)
-{
-  if (this->path == path)
-    return;
-
-  this->path = path;
-  this->engine->SetCameraPath(path);
-}
-
-void Render::UpdateSize(const int width, const int height)
-{
-  if (this->size[0] == width && this->size[1] == height)
-    return;
-
-  this->size[0] = width;
-  this->size[1] = height;
-
-  const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
-  this->engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-  this->engine->SetRenderBufferSize(this->size);
 }
 
 unsigned long long Render::operator()()
