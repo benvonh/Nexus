@@ -37,7 +37,7 @@ Node::Node() : rclcpp::Node("digital_twin")
       }
       catch (const tf2::TransformException &e)
       {
-        RCLCPP_ERROR(this->get_logger(), e.what());
+        RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, e.what());
       }
     });
 }

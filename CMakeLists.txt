@@ -38,9 +38,9 @@ set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/stb-src)
 find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED PATHS C:/usd)
 find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(urdf REQUIRED)
 
 add_executable(${TARGET}

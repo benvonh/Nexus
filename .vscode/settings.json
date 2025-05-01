@@ -88,9 +88,10 @@
     "xtr1common": "cpp",
     "xtree": "cpp",
     "xutility": "cpp",
-    "stacktrace": "cpp"
+    "stacktrace": "cpp",
+    "resumable": "cpp",
+    "source_location": "cpp"
   },
-  "C_Cpp.intelliSenseEngine": "Tag Parser",
   "files.watcherExclude": {
     "C:\\usd\\include": true
   }

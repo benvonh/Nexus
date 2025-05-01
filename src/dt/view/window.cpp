@@ -1,3 +1,4 @@
+#include "digital_twin/log.hpp"
 #include "dt/view/window.hpp"
 #include "dt/scene/manager.hpp"
 #include "imgui.h"
@@ -89,15 +90,16 @@ bool Window::Update()
 {
   if (SDL_GetWindowFlags(this->window) & SDL_WINDOW_MINIMIZED)
   {
-    SDL_Log("Window is minimized... updating at 10 fps");
     SDL_Delay(100);
+    SDL_Log("Window is minimized (10fps)");
   }
 
   ImGuiIO &io = ImGui::GetIO();
   Render &render = *this->render_ptr;
 
   try
-  { FRAME_START:
+  {
+FRAME_RESTART:
     ///////////////////////////////////////////////////////////////////////////
     // ImGUI Start
     ///////////////////////////////////////////////////////////////////////////
@@ -116,27 +118,28 @@ bool Window::Update()
         if (ImGui::MenuItem("New", "Ctrl+N"))
         {
           this->HandleFile<scene::Action::NEW>();
-          goto FRAME_START;
+          goto FRAME_RESTART;
         }
         if (ImGui::MenuItem("Open", "Ctrl+O"))
         {
           this->HandleFile<scene::Action::OPEN>();
-          goto FRAME_START;
+          goto FRAME_RESTART;
         }
         if (ImGui::MenuItem("Save", "Ctrl+S"))
         {
           this->HandleFile<scene::Action::SAVE>();
-          goto FRAME_START;
+          goto FRAME_RESTART;
         }
         if (ImGui::MenuItem("Export", "Ctrl+E"))
         {
           this->HandleFile<scene::Action::EXPORT>();
-          goto FRAME_START;
+          goto FRAME_RESTART;
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Import URDF"))
         {
-          
+          // TODO:
+          scene::Manager::SetRobot();
         }
         ImGui::EndMenu();
       }
@@ -292,22 +295,52 @@ bool Window::Update()
 
       for (auto it = range.begin(); it != range.cend(); ++it)
       {
-        if (it.IsPostVisit())
-        {
-          ImGui::TreePop();
-        }
-        else
-        {
-          if (it->GetChildren().empty())
-          {
-            ImGui::Text("%s (%s)", it->GetDisplayName().c_str(), it->GetTypeName().GetText());
-          }
-          else
-          {
-            ImGui::TreeNode("%s (%s)", it->GetDisplayName().c_str(), it->GetTypeName().GetText());
-          }
-        }
+        ImGui::Text("%s (%s)", it->GetPath().GetText(), it->GetTypeName().GetText());
+        // TODO: Work out later :)
+        // if (it.IsPostVisit())
+        // {
+        //   ImGui::TreePop();
+        //   SDL_Log("popping");
+        // }
+        // else
+        // {
+        //   if (it->GetChildren().empty())
+        //   {
+        //     ImGui::Text("%s (%s)", it->GetPath().GetText(), it->GetTypeName().GetText());
+        //     SDL_Log("Just text? %s", it->GetPath().GetText(), it->GetTypeName().GetText());
+        //   }
+        //   else
+        //   {
+        //     ImGui::TreeNode("%s (%s)", it->GetPath().GetText(), it->GetTypeName().GetText());
+        //     SDL_Log("Tree node? %s", it->GetPath().GetText(), it->GetTypeName().GetText());
+        //   }
+        // }
       }
+    }
+    ImGui::End();
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Digital Twin Log
+    ///////////////////////////////////////////////////////////////////////////
+    ImGui::Begin("Log");
+    {
+      for (const auto &[type, message] : log::data)
+      {
+        switch (type)
+        {
+        case log::Type::Event:
+          ImGui::PushStyleColor(ImGuiCol_Text, {0.59375, 0.76171875, 0.47265625, 1});
+          break;
+        case log::Type::Alert:
+          ImGui::PushStyleColor(ImGuiCol_Text, {0.89453125, 0.75, 0.48046875, 1});
+          break;
+        case log::Type::Error:
+          ImGui::PushStyleColor(ImGuiCol_Text, {0.875, 0.421875, 0.45703125, 1});
+          break;
+        }
+        ImGui::TextUnformatted(message.c_str());
+      }
+      ImGui::PopStyleColor(log::data.size());
     }
     ImGui::End();
 
@@ -326,6 +359,7 @@ bool Window::Update()
     ///////////////////////////////////////////////////////////////////////////
     // User Input
     ///////////////////////////////////////////////////////////////////////////
+EVENT_HANDLE:
     SDL_Event event;
 
     while (SDL_PollEvent(&event))

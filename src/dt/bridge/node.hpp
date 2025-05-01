@@ -11,9 +11,9 @@ namespace bridge
 {
 class Node : public rclcpp::Node
 {
-  using Timer = rclcpp::TimerBase::SharedPtr;
-  using TF_Buffer = std::unique_ptr<tf2_ros::Buffer>;
-  using TF_Listener = std::shared_ptr<tf2_ros::TransformListener>;
+  using Timer = rclcpp::TimerBase;
+  using TF_Buffer = tf2_ros::Buffer;
+  using TF_Listener = tf2_ros::TransformListener;
 
 public:
   Node();
@@ -24,9 +24,9 @@ public:
   Node &operator=(const Node &) = default;
 
 private:
-  Timer timer;
-  TF_Buffer buffer;
-  TF_Listener listener;
+  std::shared_ptr<Timer> timer;
+  std::unique_ptr<TF_Buffer> buffer;
+  std::shared_ptr<TF_Listener> listener;
 };
 } // namespace bridge
 } // namespace dt

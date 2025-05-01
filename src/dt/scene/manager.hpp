@@ -1,4 +1,5 @@
 #pragma once
+#include "digital_twin/log.hpp"
 #include "dt/scene/robot.hpp"
 #include "pxr/usd/sdf/timeCode.h"
 #include "pxr/usd/usd/stage.h"
@@ -69,16 +70,16 @@ public:
   template <Action A>
   static void HandleStage(const std::string &path = "")
   {
-    std::lock_guard<std::mutex> guard(s::mutex);
+    std::lock_guard _(s::mutex);
 
     if constexpr (A == Action::NEW)
     {
-      std::cout << "Creating new stage at " << path << '\n';
+      log::event("Creating new stage at {}", path);
       s::stage = pxr::UsdStage::CreateNew(path);
     }
     if constexpr (A == Action::OPEN)
     {
-      std::cout << "Opening stage at " << path << '\n';
+      log::event("Opening stage at {}", path);
       s::stage = pxr::UsdStage::Open(path);
     }
     if constexpr (A == Action::SAVE || A == Action::EXPORT)
@@ -91,12 +92,12 @@ public:
       if constexpr (A == Action::SAVE)
       {
         const auto id = s::stage->GetRootLayer()->GetIdentifier();
-        std::cout << "Saving stage to " << id << '\n';
+        log::event("Saving stage to {}", id);
         s::stage->Save();
       }
       else
       {
-        std::cout << "Exporting stage to " << path << '\n';
+        log::event("Exporting stage to {}", path);
         s::stage->Export(path);
       }
     }
@@ -169,6 +170,11 @@ public:
     axisZ1.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0, 0, 1)));
   }
 
+  static void SetRobot(const std::string &path="r2d2.urdf.xml")
+  {
+    s::robot.ParseURDF(path);
+  }
+
   static std::lock_guard<std::mutex> GetLockGuard()
   { return std::lock_guard<std::mutex>(s::mutex); }
 
@@ -186,9 +192,9 @@ public:
   }
 
 private:
+  static inline Robot robot;
   static inline std::mutex mutex;
   static inline pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateInMemory();
-  static inline Robot robot = GetStagePermit();
 };
 } // namespace scene
 } // namespace dt
