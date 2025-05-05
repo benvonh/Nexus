@@ -1,68 +1,68 @@
 #pragma once
-#include "pxr/base/gf/frustum.h"
+#include "dt/view/controller.hpp"
+#include "dt/view/parameter.hpp"
 #include "pxr/base/gf/vec2i.h"
 #include "pxr/usd/sdf/path.h"
+#include "pxr/usd/usd/primRange.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 #include "pxr/usdImaging/usdImagingGL/renderParams.h"
-#include <memory>
+#include <string>
+#include <vector>
 
 namespace dt
 {
-namespace view
-{
-class Render
-{
-  using Size = pxr::GfVec2i;
-  using Engine = pxr::UsdImagingGLEngine;
-  using Params = pxr::UsdImagingGLRenderParams;
-  
-  static constexpr int DEFAULT_WIDTH = 1280;
-  static constexpr int DEFAULT_HEIGHT = 720;
+  namespace view
+  {
+    class Render final : Parameter, public Controller
+    {
+    public:
+      const std::string name;
 
-public:
-  static inline const char *DRAW_MODES[] = {
-    "Points",
-    "Wireframe",
-    "Wireframe on Surface",
-    "Shaded Flat",
-    "Shaded Smooth",
-    "Geometry Only",
-    "Geometry Flat",
-    "Geometry Smooth"
-  };
+      Render(const std::string &id);
+      ~Render() = default;
+      Render(Render &&);
+      Render(const Render &) = delete;
+      Render &operator=(Render &&) = delete;
+      Render &operator=(const Render &) = delete;
+      unsigned operator()(pxr::UsdStageRefPtr stage);
+      void FreeCamera(pxr::UsdStageRefPtr stage);
+      bool Draw();
+      unsigned Texture();
 
-  static inline const char *CULL_STYLES[] = {
-    "No Opinion",
-    "Nothing",
-    "Back",
-    "Front",
-    "Back Unless Double-Sided"
-  };
+      int Width() const noexcept { return this->size[0]; }
+      int Height() const noexcept { return this->size[1]; }
 
-  static constexpr auto DRAW_MODES_SIZE = std::size(DRAW_MODES);
-  static constexpr auto CULL_STYLES_SIZE = std::size(CULL_STYLES);
+      static void CachePaths(pxr::UsdStageRefPtr stage)
+      {
+        std::vector<pxr::SdfPath> cache;
+        cache.reserve(Render::paths.size());
 
-  Size size;
-  Params params;
-  bool domeLight;
+        for (const pxr::UsdPrim &prim : stage->Traverse())
+        {
+          if (prim.IsA<pxr::UsdGeomCamera>())
+          {
+            cache.emplace_back(prim.GetPath());
+          }
+        }
 
-  Render() { this->Reset(); }
-  ~Render() = default;
-  Render(Render &&) = delete;
-  Render(const Render &) = delete;
-  Render &operator=(Render &&) = delete;
-  Render &operator=(const Render &) = delete;
+        Render::paths = cache;
+      }
 
-  void Reset();
-  void UpdateSize();
-  void UpdateDomeLight();
-  void UpdateCameraPath(const pxr::SdfPath &path);
-  void UpdateCameraState(const pxr::GfFrustum &frustum);
+    private:
+      int pathIndex = 0;
+      bool freeCamera = true;
+      pxr::GfVec2i size = {1280, 720};
+      pxr::UsdImagingGLEngine engine;
 
-  unsigned long long operator()();
+      void InitializeEngine();
 
-private:
-  std::unique_ptr<Engine> engine;
-};
-} // namespace view
-} // namespace dt
+      static inline std::vector<pxr::SdfPath> paths;
+
+      static const char *PathGetter(void *user_data, int idx)
+      {
+        const pxr::SdfPath *paths = (pxr::SdfPath *)(user_data);
+        return paths[idx].GetText();
+      }
+    };
+  }
+}

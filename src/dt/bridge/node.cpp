@@ -7,16 +7,16 @@
 
 namespace dt
 {
-namespace bridge
-{
-using namespace std::chrono_literals;
+  namespace bridge
+  {
+    using namespace std::chrono_literals;
 
-Node::Node() : rclcpp::Node("digital_twin")
-{
-  this->buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
-  this->listener = std::make_shared<tf2_ros::TransformListener>(*this->buffer);
-  this->timer = this->create_wall_timer(3ms, [this]()
+    Node::Node() : rclcpp::Node("digital_twin")
     {
+      this->buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
+      this->listener = std::make_shared<tf2_ros::TransformListener>(*this->buffer);
+      this->timer = this->create_wall_timer(3ms, [this]()
+                                            {
       try
       {
         auto time = scene::Manager::GetTime();
@@ -38,8 +38,7 @@ Node::Node() : rclcpp::Node("digital_twin")
       catch (const tf2::TransformException &e)
       {
         RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, e.what());
-      }
-    });
+      } });
+    }
+  }
 }
-} // namespace bridge
-} // namespace dt

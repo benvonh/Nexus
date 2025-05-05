@@ -3,8 +3,8 @@ project(digital_twin)
 
 set(TARGET app)
 set(CMAKE_CXX_STANDARD 23)
-set(SDL_STATIC ON CACHE BOOL "Enable SDL static library build" FORCE)
-set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared library build" FORCE)
+set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared build" FORCE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -53,7 +53,6 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
   src/dt/bridge/node.cpp
   src/dt/scene/robot.cpp
-  src/dt/view/camera.cpp
   src/dt/view/render.cpp
   src/dt/view/window.cpp
   src/main.cpp)
@@ -61,9 +60,9 @@ add_executable(${TARGET}
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
 
 target_include_directories(${TARGET} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>)
+  # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  # $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 target_include_directories(${TARGET} PRIVATE 
   ${SDL3_SOURCE_DIR}/include

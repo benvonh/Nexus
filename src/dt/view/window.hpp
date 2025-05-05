@@ -1,114 +1,124 @@
 #pragma once
+#include "dt/base.hpp"
 #include "dt/scene/manager.hpp"
-#include "dt/view/camera.hpp"
 #include "dt/view/render.hpp"
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_opengl.h"
 #include <atomic>
 #include <string>
+#include <vector>
+#include <thread>
 
 namespace dt
 {
-namespace view
-{
-class Window
-{
-  static constexpr auto &OpenFile = SDL_ShowOpenFileDialog;
-  static constexpr auto &SaveFile = SDL_ShowSaveFileDialog;
-  static constexpr auto &MessageBox = SDL_ShowSimpleMessageBox;
-
-public:
-  Window();
-  ~Window();
-  Window(Window &&) = delete;
-  Window(const Window &) = delete;
-  Window &operator=(Window &&) = delete;
-  Window &operator=(const Window &) = delete;
-  void operator()(Render &render);
-
-private:
-  bool immersive = false;
-  Render *render_ptr = nullptr;
-  SDL_Window *window = nullptr;
-  SDL_GLContext context = nullptr;
-  Camera camera;
-
-  bool Update();
-
-  template <scene::Action A>
-  void HandleFile()
+  namespace view
   {
-    SDL_Log("Handling file with action %d", static_cast<int>(A));
-
-    struct CallbackData
+    class Window
     {
-      bool cancel = false;
-      std::string file;
-      std::atomic<bool> done = false;
-    };
+      static constexpr auto &OpenFile = SDL_ShowOpenFileDialog;
+      static constexpr auto &SaveFile = SDL_ShowSaveFileDialog;
 
-    auto callback = [](void *userdata, const char * const *filelist, int filter)
+    public:
+      Window();
+      ~Window();
+      Window(Window &&) = delete;
+      Window(const Window &) = delete;
+      Window &operator=(Window &&) = delete;
+      Window &operator=(const Window &) = delete;
+      void operator()();
+      bool Update();
+
+    private:
+      bool demo = false;
+      int active = -1;
+      SDL_Window *window = nullptr;
+      SDL_GLContext context = nullptr;
+      std::vector<Render> renders;
+
+      void DefaultRender()
       {
-        CallbackData *data = static_cast<CallbackData *>(userdata);
+        this->renders.clear();
+        this->renders.emplace_back("Viewport");
+      }
+
+      struct FileDialogCallbackData
+      {
+        bool cancel = false;
+        std::string file;
+        std::atomic<bool> done = false;
+      };
+
+      static void FileDialogCallback(void *userdata, const char *const *filelist, int filter)
+      {
+        auto *data = static_cast<FileDialogCallbackData *>(userdata);
 
         if (filelist == nullptr)
         {
-          SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
+          log::error("File list is null: {}", SDL_GetError());
         }
-        if (filelist[0] == nullptr)
+        else if (filelist[0] == nullptr)
         {
-          SDL_Log("No file");
+          log::alert("Canceled file dialog");
           data->cancel = true;
         }
         else
         {
-          SDL_Log("File: %s", filelist[0]);
+          log::event("File selected: {}", filelist[0]);
           data->file = filelist[0];
         }
         data->done = true;
-      };
+      }
 
-    CallbackData data;
+      template <scene::Action A>
+      void HandleFile()
+      {
+        FileDialogCallbackData data;
 
-    const SDL_DialogFileFilter filters[] = {
-      { "USD Files", "usd;usda;usdc;usdz" },
-      { "All Files", "*" } };
+        const SDL_DialogFileFilter filters[] = {
+            {"USD Files", "usd;usda;usdc;usdz"},
+            {"All Files", "*"}};
 
-    constexpr auto size = std::size(filters);
+        constexpr auto size = std::size(filters);
 
-    if constexpr (A == scene::Action::NEW) {
-      SaveFile(callback, (void *)&data, this->window, filters, size, nullptr);
-    }
-    if constexpr (A == scene::Action::OPEN) {
-      OpenFile(callback, (void *)&data, this->window, filters, size, nullptr, false);
-    }
-    if constexpr (A == scene::Action::SAVE) {
-      scene::Manager::HandleStage<scene::Action::SAVE>();
-      return;
-    }
-    if constexpr (A == scene::Action::EXPORT) {
-      SaveFile(callback, (void *)&data, this->window, filters, size, nullptr);
-    }
+        if constexpr (A == scene::Action::NEW)
+        {
+          SaveFile(FileDialogCallback, (void *)&data, this->window, filters, size, nullptr);
+        }
+        if constexpr (A == scene::Action::OPEN)
+        {
+          OpenFile(FileDialogCallback, (void *)&data, this->window, filters, size, nullptr, false);
+        }
+        if constexpr (A == scene::Action::SAVE)
+        {
+          scene::Manager::HandleStage<scene::Action::SAVE>();
+          return;
+        }
+        if constexpr (A == scene::Action::EXPORT)
+        {
+          SaveFile(FileDialogCallback, (void *)&data, this->window, filters, size, nullptr);
+        }
 
-    while (this->Update() && !data.done);
+        while (this->Update() && !data.done)
+          ;
 
-    if (data.cancel) return;
+        if (data.cancel)
+          return;
 
-    if constexpr (A == scene::Action::NEW)
-    {
-      scene::Manager::HandleStage<scene::Action::NEW>(data.file);
-      render_ptr->Reset();
-    }
-    if constexpr (A == scene::Action::OPEN)
-    {
-      scene::Manager::HandleStage<scene::Action::OPEN>(data.file);
-      render_ptr->Reset();
-    }
-    if constexpr (A == scene::Action::EXPORT)
-    {
-      scene::Manager::HandleStage<scene::Action::EXPORT>(data.file);
-    }
+        if constexpr (A == scene::Action::NEW)
+        {
+          scene::Manager::HandleStage<scene::Action::NEW>(data.file);
+          this->DefaultRender();
+        }
+        if constexpr (A == scene::Action::OPEN)
+        {
+          scene::Manager::HandleStage<scene::Action::OPEN>(data.file);
+          this->DefaultRender();
+        }
+        if constexpr (A == scene::Action::EXPORT)
+        {
+          scene::Manager::HandleStage<scene::Action::EXPORT>(data.file);
+        }
+      }
+    };
   }
-};
-} // namespace view
-} // namespace dt
+}

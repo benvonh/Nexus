@@ -7,26 +7,26 @@
 
 namespace dt
 {
-namespace bridge
-{
-class Node : public rclcpp::Node
-{
-  using Timer = rclcpp::TimerBase;
-  using TF_Buffer = tf2_ros::Buffer;
-  using TF_Listener = tf2_ros::TransformListener;
+  namespace bridge
+  {
+    class Node : public rclcpp::Node
+    {
+      using Timer = rclcpp::TimerBase;
+      using TF_Buffer = tf2_ros::Buffer;
+      using TF_Listener = tf2_ros::TransformListener;
 
-public:
-  Node();
-  ~Node() = default;
-  Node(Node &&) = default;
-  Node(const Node &) = default;
-  Node &operator=(Node &&) = default;
-  Node &operator=(const Node &) = default;
+    public:
+      Node();
+      ~Node() = default;
+      Node(Node &&) = default;
+      Node(const Node &) = default;
+      Node &operator=(Node &&) = default;
+      Node &operator=(const Node &) = default;
 
-private:
-  std::shared_ptr<Timer> timer;
-  std::unique_ptr<TF_Buffer> buffer;
-  std::shared_ptr<TF_Listener> listener;
-};
-} // namespace bridge
-} // namespace dt
+    private:
+      std::shared_ptr<Timer> timer;
+      std::unique_ptr<TF_Buffer> buffer;
+      std::shared_ptr<TF_Listener> listener;
+    };
+  }
+}
