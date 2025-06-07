@@ -5,6 +5,8 @@ set(TARGET app)
 set(CMAKE_CXX_STANDARD 23)
 set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
 set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared build" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "Disable Assimp install" FORCE)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Disable shared libraries" FORCE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -27,12 +29,21 @@ FetchContent_Declare(ImGUI
   GIT_REPOSITORY https://github.com/ocornut/imgui
   GIT_TAG v1.91.8-docking)
 
+FetchContent_Declare(Assimp
+  GIT_REPOSITORY https://github.com/assimp/assimp
+  GIT_TAG v6.0.1)
+
+FetchContent_Declare(Termcolor
+  GIT_REPOSITORY https://github.com/ikalnytskyi/termcolor
+  GIT_TAG v2.1.0)
+
 FetchContent_Declare(STB
   GIT_REPOSITORY https://github.com/nothings/stb)
 
-FetchContent_MakeAvailable(SDL3 ImGUI STB)
+FetchContent_MakeAvailable(SDL3 ImGUI Assimp Termcolor STB)
 
 set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/imgui-src)
+set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/termcolor-src)
 set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/stb-src)
 
 find_package(OpenGL REQUIRED)
@@ -65,6 +76,7 @@ target_include_directories(${TARGET} PUBLIC
   # $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 
 target_include_directories(${TARGET} PRIVATE 
+  ${Termcolor_SOURCE_DIR}/include/termcolor
   ${SDL3_SOURCE_DIR}/include
   ${ImGUI_SOURCE_DIR}/backends
   ${ImGUI_SOURCE_DIR}
@@ -74,7 +86,8 @@ target_include_directories(${TARGET} PRIVATE
 target_link_libraries(${TARGET}
   ${PXR_LIBRARIES}
   SDL3::SDL3-static
-  OpenGL::GL)
+  OpenGL::GL
+  assimp)
 
 ament_target_dependencies(${TARGET} rclcpp tf2_ros sensor_msgs urdf)
 

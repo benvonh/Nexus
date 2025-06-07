@@ -10,6 +10,7 @@
 #include "pxr/base/gf/vec4f.h"
 #include <algorithm>
 
+// TODO: Save to USD
 namespace dt
 {
   namespace view
@@ -20,14 +21,14 @@ namespace dt
       Controller()
           : camera(/*const GfMatrix4d &transform*/ pxr::GfMatrix4d(1),
                    /*Projection projection*/ pxr::GfCamera::Projection::Perspective,
-                   /*float horizontalAperture*/ pxr::GfCamera::DEFAULT_HORIZONTAL_APERTURE,
-                   /*float verticalAperture*/ pxr::GfCamera::DEFAULT_VERTICAL_APERTURE,
+                   /*float horizontalAperture*/ pxr::GfCamera::DEFAULT_HORIZONTAL_APERTURE * 0.01,
+                   /*float verticalAperture*/ pxr::GfCamera::DEFAULT_VERTICAL_APERTURE * 0.01,
                    /*float horizontalApertureOffset*/ 0.f,
                    /*float verticalApertureOffset*/ 0.f,
-                   /*float focalLength*/ 18.f,
-                   /*const GfRange1f &clippingRange*/ pxr::GfRange1f(1, 1000000),
+                   /*float focalLength*/ 18.f * 0.01,
+                   /*const GfRange1f &clippingRange*/ pxr::GfRange1f(1 * 0.01, 1000000 * 0.01),
                    /*const std::vector<GfVec4f> &clippingPlanes*/ std::vector<pxr::GfVec4f>(),
-                   /*float fStop*/ 8.f,
+                   /*float fStop*/ 8.f * 0.01,
                    /*float focusDistance*/ 0.f)
       {
         this->Look(0, 0, 0);
@@ -116,7 +117,7 @@ namespace dt
         this->camera.SetTransform(transform);
       }
 
-      pxr::GfFrustum Frustum() const noexcept
+      auto Frustum() const -> pxr::GfFrustum
       {
         return this->camera.GetFrustum();
       }

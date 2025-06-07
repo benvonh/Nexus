@@ -3,15 +3,17 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/src",
-                "${workspaceFolder}/include",
                 "${workspaceFolder}/build/digital_twin/_deps/imgui-src",
                 "${workspaceFolder}/build/digital_twin/_deps/imgui-src/backends",
                 "${workspaceFolder}/build/digital_twin/_deps/sdl3-src/include",
+                "${workspaceFolder}/build/digital_twin/_deps/stb-src",
+                "${workspaceFolder}/build/digital_twin/_deps/termcolor-src/include/termcolor",
+                "${workspaceFolder}/src",
+                "C:\\Python38\\include",
                 "C:\\dev\\ros2_jazzy\\include\\**",
                 "C:\\usd\\include",
-                "C:\\Python38\\include",
-                "${workspaceFolder}/build/digital_twin/_deps/stb-src"
+                "${workspaceFolder}/build/digital_twin/_deps/assimp-src/include",
+                "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include"
             ],
             "defines": [
                 "_DEBUG",

@@ -1,12 +1,14 @@
 #pragma once
 // https://github.com/microsoft/STL/issues/3063
 #define _USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION 0
+#include "termcolor.hpp"
 #include <atomic>
-#include <exception>
 #include <format>
+#include <iostream>
 #include <mutex>
 #include <source_location>
 #include <stacktrace>
+#include <stdexcept>
 #include <string>
 
 namespace std
@@ -40,7 +42,7 @@ namespace dt
   template <typename... T>
   exception(const char *, T &&...) -> exception<T...>;
 
-  constexpr size_t SIZE = 8;
+  constexpr size_t SIZE = 32;
 
   ///
   /// @brief Digital Twin log
@@ -54,6 +56,7 @@ namespace dt
     ///
     enum class Type
     {
+      Debug,
       Event,
       Alert,
       Error
@@ -129,6 +132,23 @@ namespace dt
         std::lock_guard _(log::mutex);
         this->entry[this->index] = entry;
         this->index = (this->index + 1) % N;
+
+        switch (entry.type)
+        {
+        case Type::Debug:
+          std::cout << termcolor::grey;
+          break;
+        case Type::Event:
+          std::cout << termcolor::green;
+          break;
+        case Type::Alert:
+          std::cout << termcolor::yellow;
+          break;
+        case Type::Error:
+          std::cout << termcolor::red;
+          break;
+        }
+        std::cout << entry.message << termcolor::reset << std::endl;
       }
 
       Iterator begin()
@@ -143,14 +163,14 @@ namespace dt
       }
 
       ///
-      /// @return Number of entries (compile-time constant)
+      /// @return Log entry buffer size
       ///
       constexpr int size() const noexcept { return N; }
 
     private:
       int index = 0;
       Entry entry[N];
-    }; // class Data
+    };
 
     ///
     /// Global log data
@@ -165,8 +185,29 @@ namespace dt
     log &operator=(const log &) = delete;
 
     ///
-    /// @brief Helper for logging events
-    /// @tparam ...T Same as in `std::format`
+    /// @brief Helper for logging debug messages
+    /// @tparam ...T Same as `std::format`
+    ///
+    template <typename... T>
+    struct debug
+    {
+      debug(const char *format, T &&...args, const std::src &src = std::src::current())
+      {
+        const std::string fmt = std::vformat(format, std::make_format_args(args...));
+        const std::string msg = std::format("[DEBUG] ({}) : {}", src.function_name(), fmt);
+
+        while (log::read)
+        {
+          std::this_thread::yield();
+        }
+
+        log::data << log::Entry{log::Type::Debug, std::move(msg)};
+      }
+    };
+
+    ///
+    /// @brief Helper for logging event messages
+    /// @tparam ...T Same as `std::format`
     ///
     template <typename... T>
     struct event
@@ -186,8 +227,8 @@ namespace dt
     };
 
     ///
-    /// @brief Helper for logging alerts
-    /// @tparam ...T Same as in `std::format`
+    /// @brief Helper for logging alert messages
+    /// @tparam ...T Same as `std::format`
     ///
     template <typename... T>
     struct alert
@@ -207,8 +248,8 @@ namespace dt
     };
 
     ///
-    /// @brief Helper for logging errors
-    /// @tparam ...T Same as in `std::format`
+    /// @brief Helper for logging error messages
+    /// @tparam ...T Same as `std::format`
     ///
     template <typename... T>
     struct error
@@ -226,6 +267,9 @@ namespace dt
         log::data << log::Entry{log::Type::Error, std::move(msg)};
       }
     };
+
+    template <typename... T>
+    debug(const char *, T &&...) -> debug<T...>;
 
     template <typename... T>
     event(const char *, T &&...) -> event<T...>;

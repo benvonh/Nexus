@@ -61,7 +61,8 @@ namespace dt
         self::params.forceRefresh = false;
         self::params.enableSampleAlphaToCoverage = true;
         self::params.gammaCorrectColors = false;
-        self::params.clearColor = pxr::GfVec4f(0.52734375f, 0.8046875f, 0.91796875f, 1.f);
+        // self::params.clearColor = pxr::GfVec4f(0.52734375f, 0.8046875f, 0.91796875f, 1.f);
+        self::params.clearColor = pxr::GfVec4f(0.5f, 0.5f, 0.5f, 1.f);
         self::params.complexity = 1.f;
         self::params.drawMode = pxr::UsdImagingGLDrawMode::DRAW_SHADED_SMOOTH;
         self::params.cullStyle = pxr::UsdImagingGLCullStyle::CULL_STYLE_BACK_UNLESS_DOUBLE_SIDED;

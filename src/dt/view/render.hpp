@@ -24,15 +24,15 @@ namespace dt
       Render(const Render &) = delete;
       Render &operator=(Render &&) = delete;
       Render &operator=(const Render &) = delete;
-      unsigned operator()(pxr::UsdStageRefPtr stage);
-      void FreeCamera(pxr::UsdStageRefPtr stage);
-      bool Draw();
-      unsigned Texture();
+      unsigned operator()(pxr::UsdStageRefPtr &stage);
+      void SetToFreeCamera(pxr::UsdStageRefPtr &stage);
+      void Draw();
+      unsigned GetTexture();
 
-      int Width() const noexcept { return this->size[0]; }
-      int Height() const noexcept { return this->size[1]; }
+      int GetWidth() const noexcept { return this->size[0]; }
+      int GetHeight() const noexcept { return this->size[1]; }
 
-      static void CachePaths(pxr::UsdStageRefPtr stage)
+      static void CachePaths(pxr::UsdStageRefPtr &stage)
       {
         std::vector<pxr::SdfPath> cache;
         cache.reserve(Render::paths.size());
