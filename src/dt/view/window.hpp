@@ -1,13 +1,22 @@
 #pragma once
-#include "dt/base.hpp"
+#include "digital_twin/base.hpp"
+#include "digital_twin/plugin.hpp"
 #include "dt/scene/manager.hpp"
 #include "dt/view/render.hpp"
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_opengl.h"
 #include <atomic>
 #include <string>
-#include <vector>
 #include <thread>
+#include <vector>
+#include <windows.h>
+
+struct Plugin
+{
+  HMODULE module;
+  dt::IPlugin *instance;
+  void (*destroy)(dt::IPlugin *);
+};
 
 namespace dt
 {
@@ -34,6 +43,7 @@ namespace dt
       SDL_Window *window = nullptr;
       SDL_GLContext context = nullptr;
       std::vector<Render> renders;
+      std::vector<Plugin> plugins;
 
       void DefaultRender()
       {

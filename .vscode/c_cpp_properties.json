@@ -13,7 +13,8 @@
                 "C:\\dev\\ros2_jazzy\\include\\**",
                 "C:\\usd\\include",
                 "${workspaceFolder}/build/digital_twin/_deps/assimp-src/include",
-                "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include"
+                "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include",
+                "${workspaceFolder}/include"
             ],
             "defines": [
                 "_DEBUG",

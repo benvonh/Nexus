@@ -1,4 +1,3 @@
-#include "dt/base.hpp"
 #include "dt/view/window.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -53,6 +52,18 @@ dt::view::Window::Window()
 dt::view::Window::~Window()
 {
   this->renders.clear();
+
+  for (auto &plugin : this->plugins)
+  {
+    if (plugin.instance)
+    {
+      plugin.destroy(plugin.instance);
+    }
+    if (plugin.module)
+    {
+      FreeLibrary(plugin.module);
+    }
+  }
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
@@ -135,6 +146,32 @@ bool dt::view::Window::Update()
       {
         // TODO:
         scene::Manager::SetRobot("assets/franka/franka.urdf");
+      }
+      if (ImGui::MenuItem("Load Plugin"))
+      {
+        HMODULE mod = LoadLibraryW(L"test.dll");
+        if (!mod)
+        {
+          log::error("Failed to load plugin: {}", GetLastError());
+          return true;
+        }
+        log::event("Plugin loaded successfully");
+        auto create = reinterpret_cast<IPlugin *(*)()>(GetProcAddress(mod, "create_plugin"));
+        auto destroy = reinterpret_cast<void (*)(IPlugin *)>(GetProcAddress(mod, "destroy_plugin"));
+        if (!create || !destroy)
+        {
+          log::error("Failed to get plugin functions: {}", GetLastError());
+          FreeLibrary(mod);
+          return true;
+        }
+        IPlugin *inst = create();
+        if (!inst)
+        {
+          log::error("Failed to create plugin instance");
+          FreeLibrary(mod);
+          return true;
+        }
+        log::event("Plugin instance created: {}", inst->GetName());
       }
       ImGui::EndMenu();
     }
@@ -337,6 +374,17 @@ bool dt::view::Window::Update()
     ImGui::PopStyleColor(log::data.size());
   }
   ImGui::End();
+
+  /////////////////////////////////////////////////////////////////////////
+  // Plugins
+  /////////////////////////////////////////////////////////////////////////
+  for (auto &plugin : this->plugins)
+  {
+    if (plugin.instance)
+    {
+      plugin.instance->Draw();
+    }
+  }
 
   /////////////////////////////////////////////////////////////////////////
   // ImGUI Finish
