@@ -90,7 +90,16 @@
     "xutility": "cpp",
     "stacktrace": "cpp",
     "resumable": "cpp",
-    "source_location": "cpp"
+    "source_location": "cpp",
+    "cassert": "cpp",
+    "cerrno": "cpp",
+    "cfloat": "cpp",
+    "climits": "cpp",
+    "fstream": "cpp",
+    "random": "cpp",
+    "regex": "cpp",
+    "stack": "cpp",
+    "string_view": "cpp"
   },
   "files.watcherExclude": {
     "C:\\usd\\include": true

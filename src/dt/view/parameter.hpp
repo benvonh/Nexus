@@ -74,7 +74,7 @@ namespace dt
       static inline bool live = true;
       static inline float time = 0.f;
       static inline float latest = 0.f;
-      static inline auto params = self::Default();
+      static inline pxr::UsdImagingGLRenderParams params = self::Default();
 
       static inline const char *DRAW_MODES[] = {
           "Points",

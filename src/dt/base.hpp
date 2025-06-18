@@ -18,6 +18,45 @@ namespace std
 
 namespace dt
 {
+  template <typename... T>
+  struct format_exception
+  {
+    const std::string string;
+
+    format_exception(const char *fmt, T &&...args, const std::src &src = std::src::current())
+        : string(std::format("{}({},{})@{}: {}\n{}",
+                             src.file_name(),
+                             src.line(),
+                             src.column(),
+                             src.function_name(),
+                             std::vformat(fmt, std::make_format_args(args...)),
+                             std::stacktrace::current()))
+    {
+    }
+
+    constexpr operator const char *() const noexcept
+    {
+      return string.c_str();
+    }
+  };
+
+  template <typename... T>
+  format_exception(const char *, T &&...) -> format_exception<T...>;
+
+  template <typename... T>
+  using exfmt = format_exception<T...>;
+
+  ///
+  /// @brief Non-templated custom exception
+  /// @note DO NOT USE
+  ///
+  /// This exception is used as a base for the implemented version
+  /// so that it may be caught without the trouble of template deduction.
+  ///
+  struct custom_exception : public std::exception
+  {
+  };
+
   ///
   /// @brief Digital Twin exception
   /// @tparam ...T See `std::format`
@@ -27,16 +66,13 @@ namespace dt
   /// call site are also included.
   ///
   template <typename... T>
-  struct exception : public std::runtime_error
+  struct exception : public custom_exception
   {
     exception(const char *fmt, T &&...args, const std::src &src = std::src::current())
-        : std::runtime_error(std::format("{}({},{})@{}: {}\n{}",
-                                         src.file_name(),
-                                         src.line(),
-                                         src.column(),
-                                         src.function_name(),
-                                         std::vformat(fmt, std::make_format_args(args...)),
-                                         std::stacktrace::current())) {}
+        : std::exception(format_exception<T...>(fmt, std::forward<T>(args)..., src))
+    // This is non-standard by MSVC
+    {
+    }
   };
 
   template <typename... T>
@@ -91,18 +127,18 @@ namespace dt
         using difference_type = std::ptrdiff_t;
         using iterator_category = std::input_iterator_tag;
 
-        Iterator(std::mutex &m, pointer p, int i) : left(N - i), ptr(p + i), lg(m) {}
+        Iterator(std::mutex &m, pointer p, int i) : _left(N - i), _ptr(p + i), _lg(m) {}
 
         ~Iterator() { log::read = false; }
 
         Iterator &operator++()
         {
-          if (--this->left == 0)
+          if (--_left == 0)
           {
-            this->ptr -= N;
+            _ptr -= N;
           }
 
-          this->ptr++;
+          _ptr++;
           return *this;
         }
 
@@ -115,23 +151,23 @@ namespace dt
 
         bool operator!=(pointer p) const
         {
-          return this->left > 0 || this->ptr != p;
+          return _left > 0 || _ptr != p;
         }
 
-        const pointer operator->() const { return this->ptr; }
-        const reference operator*() const { return *this->ptr; }
+        const pointer operator->() const { return _ptr; }
+        const reference operator*() const { return *_ptr; }
 
       private:
-        int left;
-        pointer ptr;
-        std::lock_guard<std::mutex> lg;
+        int _left;
+        pointer _ptr;
+        std::lock_guard<std::mutex> _lg;
       };
 
       void operator<<(Entry &&entry)
       {
         std::lock_guard _(log::mutex);
-        this->entry[this->index] = entry;
-        this->index = (this->index + 1) % N;
+        entry[index] = entry;
+        index = (index + 1) % N;
 
         switch (entry.type)
         {
@@ -154,12 +190,12 @@ namespace dt
       Iterator begin()
       {
         log::read = true;
-        return Iterator(log::mutex, this->entry, this->index);
+        return Iterator(log::mutex, entry, index);
       }
 
       Iterator::pointer end()
       {
-        return &this->entry[this->index];
+        return &entry[index];
       }
 
       ///

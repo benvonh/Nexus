@@ -1,9 +1,9 @@
+#include "dt/view/filedialog.hpp"
 #include "dt/view/window.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl3.h"
 #include "pxr/usd/usd/primRange.h"
-#include "stb_image_write.h"
 
 dt::view::Window::Window()
 {
@@ -19,21 +19,21 @@ dt::view::Window::Window()
                       SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
   constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-  this->window = SDL_CreateWindow("Digital Twin", 1280, 720, windowFlags);
+  _window = SDL_CreateWindow("Digital Twin", 1280, 720, windowFlags);
 
-  if (this->window == nullptr)
+  if (_window == nullptr)
     throw exception("SDL Create Window: {}", SDL_GetError());
 
-  SDL_SetWindowPosition(this->window,
+  SDL_SetWindowPosition(_window,
                         SDL_WINDOWPOS_CENTERED,
                         SDL_WINDOWPOS_CENTERED);
 
-  this->context = SDL_GL_CreateContext(this->window);
+  this->context = SDL_GL_CreateContext(_window);
 
   if (this->context == nullptr)
     throw exception("SDL Create Context: {}", SDL_GetError());
 
-  SDL_GL_MakeCurrent(this->window, this->context);
+  SDL_GL_MakeCurrent(_window, this->context);
   SDL_GL_SetSwapInterval(1);
 
   IMGUI_CHECKVERSION();
@@ -43,10 +43,10 @@ dt::view::Window::Window()
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
   ImGui::GetStyle().WindowRounding = 8.f;
-  ImGui_ImplSDL3_InitForOpenGL(this->window, this->context);
+  ImGui_ImplSDL3_InitForOpenGL(_window, this->context);
   ImGui_ImplOpenGL3_Init("#version 460 core");
 
-  this->DefaultRender();
+  _file_dialog.emplace(_window);
 }
 
 dt::view::Window::~Window()
@@ -70,35 +70,19 @@ dt::view::Window::~Window()
   ImGui::DestroyContext();
 
   SDL_GL_DestroyContext(this->context);
-  SDL_DestroyWindow(this->window);
+  SDL_DestroyWindow(_window);
   SDL_Quit();
 }
 
-void dt::view::Window::operator()()
+void dt::view::Window::ShowException(const std::exception &e)
 {
-  while (true)
-  {
-    try
-    {
-      while (this->Update())
-        ;
-      break;
-    }
-    catch (const std::exception &e)
-    {
-      if (std::strlen(SDL_GetError()) > 0)
-      {
-        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "%s", SDL_GetError());
-      }
-      if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e.what(), this->window))
-        throw std::runtime_error(SDL_GetError());
-    }
-  }
+  if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e.what(), _window))
+    throw std::runtime_error(SDL_GetError());
 }
 
 bool dt::view::Window::Update()
 {
-  if (SDL_GetWindowFlags(this->window) & SDL_WINDOW_MINIMIZED)
+  if (SDL_GetWindowFlags(_window) & SDL_WINDOW_MINIMIZED)
   {
     SDL_Log("Window is minimized (10 fps)");
     SDL_Delay(100);
@@ -122,23 +106,37 @@ bool dt::view::Window::Update()
     {
       if (ImGui::MenuItem("New", "Ctrl+N"))
       {
-        this->HandleFile<scene::Action::NEW>();
-        return true;
+        FileDialog::Show<FileDialog::Mode::SAVE>(this->window);
+        if (this->UpdateModal())
+        {
+          scene::Manager::HandleStage<scene::Action::NEW>(FileDialog::callback.path);
+          this->DefaultRender();
+        }
+        return *this;
       }
       if (ImGui::MenuItem("Open", "Ctrl+O"))
       {
-        this->HandleFile<scene::Action::OPEN>();
-        return true;
+        FileDialog::Show<FileDialog::Mode::OPEN>(this->window);
+        if (this->UpdateModal())
+        {
+          scene::Manager::HandleStage<scene::Action::OPEN>(FileDialog::callback.path);
+          this->DefaultRender();
+        }
+        return *this;
       }
       if (ImGui::MenuItem("Save", "Ctrl+S"))
       {
-        this->HandleFile<scene::Action::SAVE>();
-        return true;
+        scene::Manager::HandleStage<scene::Action::SAVE>();
+        return *this;
       }
       if (ImGui::MenuItem("Export", "Ctrl+E"))
       {
-        this->HandleFile<scene::Action::EXPORT>();
-        return true;
+        FileDialog::Show<FileDialog::Mode::SAVE>(this->window);
+        if (this->UpdateModal())
+        {
+          scene::Manager::HandleStage<scene::Action::OPEN>(FileDialog::callback.path);
+        }
+        return *this;
       }
       ImGui::Separator();
 
@@ -149,7 +147,7 @@ bool dt::view::Window::Update()
       }
       if (ImGui::MenuItem("Load Plugin"))
       {
-        HMODULE mod = LoadLibraryW(L"test.dll");
+        HMODULE mod = LoadLibraryW(LR"(C:\Projects\DigitalTwinPlugin\install\digital_twin_plugin\bin\plugin.dll)");
         if (!mod)
         {
           log::error("Failed to load plugin: {}", GetLastError());
@@ -172,6 +170,7 @@ bool dt::view::Window::Update()
           return true;
         }
         log::event("Plugin instance created: {}", inst->GetName());
+        this->plugins.push_back({mod, inst, destroy});
       }
       ImGui::EndMenu();
     }
@@ -179,7 +178,7 @@ bool dt::view::Window::Update()
     {
       if (ImGui::MenuItem("Add Viewport", "Ctrl+Shift+N"))
       {
-        this->renders.emplace_back(std::format("Viewport (#{})", this->renders.size()));
+        _render_group.AddRender();
       }
       if (ImGui::MenuItem("Remove Viewport", "Ctrl+Shift+R"))
       {
@@ -204,7 +203,6 @@ bool dt::view::Window::Update()
   /////////////////////////////////////////////////////////////////////////
   // USD Render Viewport
   /////////////////////////////////////////////////////////////////////////
-  int renderWantsToSave = -1;
   {
     scene::StagePermit permit = scene::Manager::GetStagePermit();
     Render::CachePaths(permit.stage);
@@ -215,59 +213,6 @@ bool dt::view::Window::Update()
       ImGui::Begin(render.name.c_str(), nullptr, ImGuiWindowFlags_MenuBar);
 
       render.Draw();
-
-      if (ImGui::BeginMenuBar())
-      {
-        if (ImGui::BeginMenu("Capture"))
-        {
-          if (ImGui::Button("Save to file"))
-          {
-            renderWantsToSave = i;
-          }
-          ImGui::EndMenu();
-        }
-        ImGui::EndMenuBar();
-      }
-
-      ImVec2 size(render.GetWidth(), render.GetHeight());
-      ImVec2 space = ImGui::GetContentRegionAvail();
-      ImVec2 offset = ImGui::GetCursorPos();
-
-      switch ((size.y > space.y) << 1 | (size.x > space.x))
-      {
-      case 0b00:
-        offset.x += (space.x - size.x) / 2;
-        offset.y += (space.y - size.y) / 2;
-        break;
-      case 0b01:
-        size.x = space.x;
-        size.y *= space.x / size.x;
-        offset.y += (space.y - size.y) / 2;
-        break;
-      case 0b10:
-        size.y = space.y;
-        size.x *= space.y / size.y;
-        offset.x += (space.x - size.x) / 2;
-        break;
-      case 0b11:
-        float Sx = space.x / size.x;
-        float Sy = space.y / size.y;
-        if (Sx < Sy)
-        {
-          size.x = space.x;
-          size.y *= Sx;
-          offset.y += (space.y - size.y) / 2;
-        }
-        else
-        {
-          size.y = space.y;
-          size.x *= Sy;
-          offset.x += (space.x - size.x) / 2;
-        }
-        break;
-      }
-      ImGui::SetCursorPos(offset);
-      ImGui::Image(render(permit.stage), size, ImVec2(0, 1), ImVec2(1, 0));
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
       {
@@ -285,29 +230,6 @@ bool dt::view::Window::Update()
       }
       ImGui::End();
     }
-  }
-
-  // TODO: SDL event instead of whatever this is
-  if (renderWantsToSave >= 0)
-  {
-    FileDialogCallbackData data;
-    SaveFile(FileDialogCallback, (void *)&data, this->window, nullptr, 0, nullptr);
-
-    while (this->Update() && !data.done)
-      ;
-
-    if (!data.cancel)
-    {
-      Render &render = this->renders[renderWantsToSave];
-      std::vector<unsigned char> pixels(render.GetWidth() * render.GetHeight() * 4);
-      glBindTexture(GL_TEXTURE_2D, render.GetTexture());
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-      stbi_flip_vertically_on_write(1);
-      stbi_write_png(data.file.c_str(), render.GetWidth(), render.GetHeight(), 4, pixels.data(), render.GetWidth() * 4);
-      glBindTexture(GL_TEXTURE_2D, 0);
-    }
-    return true;
   }
 
   /////////////////////////////////////////////////////////////////////////
@@ -357,15 +279,12 @@ bool dt::view::Window::Update()
         ImGui::PushStyleColor(ImGuiCol_Text, {0.5, 0.5, 0.5, 1});
         break;
       case log::Type::Event:
-        // ImGui::PushStyleColor(ImGuiCol_Text, {0.59375, 0.76171875, 0.47265625, 1});
         ImGui::PushStyleColor(ImGuiCol_Text, {0, 1, 0, 1});
         break;
       case log::Type::Alert:
-        // ImGui::PushStyleColor(ImGuiCol_Text, {0.89453125, 0.75, 0.48046875, 1});
         ImGui::PushStyleColor(ImGuiCol_Text, {1, 1, 0, 1});
         break;
       case log::Type::Error:
-        // ImGui::PushStyleColor(ImGuiCol_Text, {0.875, 0.421875, 0.45703125, 1});
         ImGui::PushStyleColor(ImGuiCol_Text, {1, 0, 0, 1});
         break;
       }
@@ -410,6 +329,7 @@ bool dt::view::Window::Update()
         (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
          event.window.windowID == SDL_GetWindowID(this->window)))
     {
+      this->isLive = false;
       return false;
     }
 
@@ -468,5 +388,5 @@ bool dt::view::Window::Update()
       this->active = -1;
     }
   }
-  return true;
+  return *this;
 }

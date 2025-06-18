@@ -1,5 +1,6 @@
 #pragma once
-#include "digital_twin/base.hpp"
+#include "dt/base.hpp"
+#include "dt/scene/permit.hpp"
 #include "dt/scene/robot.hpp"
 #include "pxr/usd/sdf/timeCode.h"
 #include "pxr/usd/usd/stage.h"
@@ -22,7 +23,7 @@ namespace dt
     /// @brief Create a default stage in memory
     /// @return Default USD stage
     ///
-    static pxr::UsdStageRefPtr DefaultStage()
+    auto DefaultStage() -> pxr::UsdStageRefPtr
     {
       pxr::UsdStageRefPtr stage = pxr::UsdStage::CreateInMemory();
 
@@ -70,33 +71,6 @@ namespace dt
       SAVE,
       EXPORT
     };
-
-    template <typename T>
-    struct Permit
-    {
-      Permit(std::mutex &m, T &r) : guard(m), thing(r) {}
-      std::lock_guard<std::mutex> guard;
-      T &thing;
-    };
-
-    template <>
-    struct Permit<pxr::UsdStageRefPtr>
-    {
-      Permit(std::mutex &m, pxr::UsdStageRefPtr &r) : guard(m), stage(r) {}
-      std::lock_guard<std::mutex> guard;
-      pxr::UsdStageRefPtr &stage;
-    };
-
-    template <>
-    struct Permit<Robot>
-    {
-      Permit(std::mutex &m, Robot &r) : guard(m), robot(r) {}
-      std::lock_guard<std::mutex> guard;
-      Robot &robot;
-    };
-
-    using StagePermit = Permit<pxr::UsdStageRefPtr>;
-    using RobotPermit = Permit<Robot>;
 
     class Manager
     {
