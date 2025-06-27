@@ -11,7 +11,7 @@ namespace dt
   {
     class Node : public rclcpp::Node
     {
-      using Timer = rclcpp::TimerBase;
+      using Timer = rclcpp::Timercore;
       using TF_Buffer = tf2_ros::Buffer;
       using TF_Listener = tf2_ros::TransformListener;
 

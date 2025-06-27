@@ -1,9 +1,9 @@
 #include "dt/bridge/node.hpp"
 #include "dt/scene/manager.hpp"
-#include "pxr/base/gf/matrix4d.h"
-#include "pxr/base/gf/quatd.h"
-#include "pxr/base/gf/rotation.h"
-#include "pxr/base/gf/vec3d.h"
+#include "pxr/core/gf/matrix4d.h"
+#include "pxr/core/gf/quatd.h"
+#include "pxr/core/gf/rotation.h"
+#include "pxr/core/gf/vec3d.h"
 
 namespace dt
 {
@@ -24,7 +24,7 @@ dt::bridge::Node::Node() : rclcpp::Node("digital_twin")
 
         for (auto &[name, xform] : robot.xforms)
         {
-          const auto look = this->buffer->lookupTransform("base", name.c_str(), tf2::TimePointZero);
+          const auto look = this->buffer->lookupTransform("core", name.c_str(), tf2::TimePointZero);
           const auto &rotation = look.transform.rotation;
           const auto &translation = look.transform.translation;
           pxr::GfQuatd q(rotation.w, rotation.x, rotation.y, rotation.z);

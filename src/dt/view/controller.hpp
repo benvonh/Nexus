@@ -1,13 +1,13 @@
 #pragma once
 #include "imgui.h"
-#include "pxr/base/gf/camera.h"
-#include "pxr/base/gf/frustum.h"
-#include "pxr/base/gf/matrix3d.h"
-#include "pxr/base/gf/matrix4d.h"
-#include "pxr/base/gf/range1f.h"
-#include "pxr/base/gf/rotation.h"
-#include "pxr/base/gf/vec3d.h"
-#include "pxr/base/gf/vec4f.h"
+#include "pxr/core/gf/camera.h"
+#include "pxr/core/gf/frustum.h"
+#include "pxr/core/gf/matrix3d.h"
+#include "pxr/core/gf/matrix4d.h"
+#include "pxr/core/gf/range1f.h"
+#include "pxr/core/gf/rotation.h"
+#include "pxr/core/gf/vec3d.h"
+#include "pxr/core/gf/vec4f.h"
 #include <algorithm>
 
 // TODO: Save to USD

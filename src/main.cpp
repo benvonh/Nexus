@@ -1,30 +1,28 @@
 #include "dt/app.hpp"
-#include "rclcpp/rclcpp.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
 
 int main(int argc, char *argv[])
 {
-  std::cout << "+----------------+\n";
-  std::cout << "|  Digital Twin  |\n";
-  std::cout << "+----------------+\n";
+  // TODO: Nicer welcome banner
+  std::cout << "+---------------------+\n";
+  std::cout << "|  Digital Twin (v0)  |\n";
+  std::cout << "+---------------------+\n";
 
   try
   {
-    rclcpp::init(argc, argv);
+    dt::App app(argc, argv);
 
-    dt::App app;
-
-    app.StartROS();
+    app.SpinROS();
     app.MainLoop();
-
-    rclcpp::shutdown();
   }
   catch (const std::exception &e)
   {
+    // TODO: Someday, find a nice exception message
     std::cerr << "\nUh-oh... An exception has been caught!\n";
     std::cerr << "\n  From exception of type " << typeid(e).name();
     std::cerr << "\n    " << e.what() << std::endl;
   }
+  std::cout << "Done\n";
 }

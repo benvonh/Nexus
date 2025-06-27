@@ -1,18 +1,18 @@
 #pragma once
-#include "dt/base.hpp"
+#include "dt/declspec.hpp"
 #include "SDL3/SDL_dialog.h"
 #include "SDL3/SDL_video.h"
-#include <string>
 
 namespace dt
 {
   namespace view
   {
-    class FileDialog
+    class DT_API FileDialog
     {
     public:
       FileDialog(SDL_Window *window);
       ~FileDialog();
+
       FileDialog(FileDialog &&) = delete;
       FileDialog(const FileDialog &) = delete;
       FileDialog &operator=(FileDialog &&) = delete;
@@ -20,7 +20,7 @@ namespace dt
 
       struct HandleFile
       {
-        virtual void operator()(const std::string &path)
+        virtual void operator()(const std::string &path) = 0;
       };
 
       enum class Mode
@@ -29,42 +29,45 @@ namespace dt
         SAVE
       };
 
-      static inline constexpr SDL_DialogFileFilter usdFilter[] = {
-          {"USD Files", "usd;usda;usdc;usdz"},
-          {"All Files", "*"}};
-
-      template <Mode M>
-      static void Show(HandleFile *handle, SDL_DialogFileFilter filter[])
+      template <Mode M, int NF>
+      void Show(HandleFile *handle, SDL_DialogFileFilter filter[NF])
       {
         if (_window == nullptr)
-          throw exception("Window is null! Did you forget to initialize?");
-
-        constexpr auto nf = std::size(FileDialog::usdFilter);
-
+          throw exception("Singleton was not initialized!");
+        
         if constexpr (M == Mode::OPEN)
         {
           SDL_ShowOpenFileDialog(
               _Callback,
               handle,
-              window,
-              FileDialog::usdFilter,
-              nf, nullptr, false);
+              _window,
+              filter,
+              NF,
+              nullptr,
+              false);
         }
         if constexpr (M == Mode::SAVE)
         {
           SDL_ShowSaveFileDialog(
               _Callback,
               handle,
-              window,
-              FileDialog::usdFilter,
-              nf, nullptr);
+              _window,
+              filter,
+              NF,
+              nullptr);
         }
       }
 
-    private:
-      static void _Callback(void *impl, const char *const *file, int _);
+      static inline constexpr SDL_DialogFileFilter usd_filter[] = {
+          {"USD Files", "usd;usda;usdc;usdz"}};
+      // {"USD Files", "usd;usda;usdc;usdz"},
+      // {"All Files", "*"}};
 
-      static inline SDL_Window *_window = nullptr;
+    private:
+      static void _Callback(void *, const char *const *, int);
+
+      // TODO: Does this have to be not inline?
+      static inline SDL_Window *_window;
     };
   }
 }

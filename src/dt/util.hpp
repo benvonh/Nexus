@@ -50,7 +50,7 @@ namespace dt
   /// @brief Non-templated custom exception
   /// @note DO NOT USE
   ///
-  /// This exception is used as a base for the implemented version
+  /// This exception is used as a core for the implemented version
   /// so that it may be caught without the trouble of template deduction.
   ///
   struct custom_exception : public std::exception
@@ -129,7 +129,7 @@ namespace dt
 
         Iterator(std::mutex &m, pointer p, int i) : _left(N - i), _ptr(p + i), _lg(m) {}
 
-        ~Iterator() { log::read = false; }
+        ~Iterator() { log::_read = false; }
 
         Iterator &operator++()
         {
@@ -165,9 +165,9 @@ namespace dt
 
       void operator<<(Entry &&entry)
       {
-        std::lock_guard _(log::mutex);
-        entry[index] = entry;
-        index = (index + 1) % N;
+        std::lock_guard _(log::_mutex);
+        entry[_index] = entry;
+        _index = (_index + 1) % N;
 
         switch (entry.type)
         {
@@ -189,13 +189,13 @@ namespace dt
 
       Iterator begin()
       {
-        log::read = true;
-        return Iterator(log::mutex, entry, index);
+        _read = true;
+        return Iterator(_mutex, _entry, _index);
       }
 
       Iterator::pointer end()
       {
-        return &entry[index];
+        return &_entry[_index];
       }
 
       ///
@@ -204,8 +204,8 @@ namespace dt
       constexpr int size() const noexcept { return N; }
 
     private:
-      int index = 0;
-      Entry entry[N];
+      int _index = 0;
+      Entry _entry[N];
     };
 
     ///
@@ -232,7 +232,7 @@ namespace dt
         const std::string fmt = std::vformat(format, std::make_format_args(args...));
         const std::string msg = std::format("[DEBUG] ({}) : {}", src.function_name(), fmt);
 
-        while (log::read)
+        while (log::_read)
         {
           std::this_thread::yield();
         }
@@ -253,7 +253,7 @@ namespace dt
         const std::string fmt = std::vformat(format, std::make_format_args(args...));
         const std::string msg = std::format("[EVENT] ({}) : {}", src.function_name(), fmt);
 
-        while (log::read)
+        while (log::_read)
         {
           std::this_thread::yield();
         }
@@ -274,7 +274,7 @@ namespace dt
         const std::string fmt = std::vformat(format, std::make_format_args(args...));
         const std::string msg = std::format("[ALERT] ({}) : {}", src.function_name(), fmt);
 
-        while (log::read)
+        while (log::_read)
         {
           std::this_thread::yield();
         }
@@ -295,7 +295,7 @@ namespace dt
         const std::string fmt = std::vformat(format, std::make_format_args(args...));
         const std::string msg = std::format("[ERROR] ({}) : {}", src.function_name(), fmt);
 
-        while (log::read)
+        while (log::_read)
         {
           std::this_thread::yield();
         }
@@ -317,7 +317,7 @@ namespace dt
     error(const char *, T &&...) -> error<T...>;
 
   private:
-    static inline std::mutex mutex;
-    static inline std::atomic<bool> read{};
-  }; // class log
+    static inline std::mutex _mutex;
+    static inline std::atomic<bool> _read = false;
+  };
 }

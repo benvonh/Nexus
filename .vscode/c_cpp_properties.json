@@ -9,12 +9,12 @@
                 "${workspaceFolder}/build/digital_twin/_deps/stb-src",
                 "${workspaceFolder}/build/digital_twin/_deps/termcolor-src/include/termcolor",
                 "${workspaceFolder}/src",
-                "C:\\Python38\\include",
-                "C:\\dev\\ros2_jazzy\\include\\**",
-                "C:\\usd\\include",
+                "${workspaceFolder}/../ros2-windows/include",
+                "${workspaceFolder}/../usd/include",
                 "${workspaceFolder}/build/digital_twin/_deps/assimp-src/include",
                 "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include",
-                "${workspaceFolder}/include"
+                "${workspaceFolder}/include",
+                "C:/pixi_ws/ros2-windows/include/rclcpp"
             ],
             "defines": [
                 "_DEBUG",

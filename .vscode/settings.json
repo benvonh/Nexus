@@ -100,8 +100,5 @@
     "regex": "cpp",
     "stack": "cpp",
     "string_view": "cpp"
-  },
-  "files.watcherExclude": {
-    "C:\\usd\\include": true
   }
 }

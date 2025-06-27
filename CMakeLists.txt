@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31.3)
+cmake_minimum_required(VERSION 3.28.3)
 project(digital_twin)
 
 set(TARGET app)
@@ -12,6 +12,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_compile_definitions(HOST_BUILD)
 # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
 add_compile_definitions(NOMINMAX)
 # warning C4996: 'std::atomic_compare_exchange_weak_explicit':
@@ -34,8 +35,7 @@ FetchContent_Declare(Assimp
   GIT_TAG v6.0.1)
 
 FetchContent_Declare(Termcolor
-  GIT_REPOSITORY https://github.com/ikalnytskyi/termcolor
-  GIT_TAG v2.1.0)
+  GIT_REPOSITORY https://github.com/ikalnytskyi/termcolor)
 
 FetchContent_Declare(STB
   GIT_REPOSITORY https://github.com/nothings/stb)
@@ -83,12 +83,13 @@ target_include_directories(${TARGET} PRIVATE
   ${STB_SOURCE_DIR})
 
 target_link_libraries(${TARGET}
+  ${sensor_msgs_TARGETS}
+  ${tf2_ros_TARGETS}
+  ${urdf_TARGETS}
   ${PXR_LIBRARIES}
   SDL3::SDL3-static
   OpenGL::GL
   assimp)
-
-ament_target_dependencies(${TARGET} rclcpp tf2_ros sensor_msgs urdf)
 
 install(TARGETS ${TARGET} DESTINATION lib/${PROJECT_NAME})
 

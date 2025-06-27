@@ -1,15 +1,10 @@
 #pragma once
+#include "dt/declspec.hpp"
 #include <string>
-
-#ifdef PLUGIN_BUILD
-  #define PLUGIN_API __declspec(dllexport)
-#else
-  #define PLUGIN_API __declspec(dllimport)
-#endif
 
 namespace dt
 {
-  struct PLUGIN_API IPlugin
+  struct DT_API IPlugin
   {
     virtual ~IPlugin() = default;
 
@@ -25,6 +20,6 @@ namespace dt
 
 extern "C"
 {
-  PLUGIN_API dt::IPlugin *create_plugin();
-  PLUGIN_API void destroy_plugin(dt::IPlugin *plugin);
+  DT_API dt::IPlugin *create_plugin();
+  DT_API void destroy_plugin(dt::IPlugin *plugin);
 }

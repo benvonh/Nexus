@@ -1,14 +1,15 @@
-#include "dt/view/filedialog.hpp"
 #include "dt/view/window.hpp"
+#include "dt/view/filedialog.hpp"
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_impl_sdl3.h"
 #include "pxr/usd/usd/primRange.h"
 
+#define THROW_SDL_ERROR throw std::runtime_error(exfmt(SDL_GetError()))
+
 dt::view::Window::Window()
 {
-  if (!SDL_Init(SDL_INIT_VIDEO))
-    throw exception("SDL Initialize: {}", SDL_GetError());
+  if (!SDL_Init(SDL_INIT_VIDEO)) THROW_SDL_ERROR;
 
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
@@ -21,19 +22,14 @@ dt::view::Window::Window()
   constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
   _window = SDL_CreateWindow("Digital Twin", 1280, 720, windowFlags);
 
-  if (_window == nullptr)
-    throw exception("SDL Create Window: {}", SDL_GetError());
+  if (_window == nullptr) THROW_SDL_ERROR;
 
-  SDL_SetWindowPosition(_window,
-                        SDL_WINDOWPOS_CENTERED,
-                        SDL_WINDOWPOS_CENTERED);
+  SDL_SetWindowPosition(_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+  _context = SDL_GL_CreateContext(_window);
 
-  this->context = SDL_GL_CreateContext(_window);
+  if (_context == nullptr) THROW_SDL_ERROR;
 
-  if (this->context == nullptr)
-    throw exception("SDL Create Context: {}", SDL_GetError());
-
-  SDL_GL_MakeCurrent(_window, this->context);
+  SDL_GL_MakeCurrent(_window, _context);
   SDL_GL_SetSwapInterval(1);
 
   IMGUI_CHECKVERSION();
@@ -43,33 +39,17 @@ dt::view::Window::Window()
   io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
   ImGui::GetStyle().WindowRounding = 8.f;
-  ImGui_ImplSDL3_InitForOpenGL(_window, this->context);
+  ImGui_ImplSDL3_InitForOpenGL(_window, _context);
   ImGui_ImplOpenGL3_Init("#version 460 core");
-
-  _file_dialog.emplace(_window);
 }
 
 dt::view::Window::~Window()
 {
-  this->renders.clear();
-
-  for (auto &plugin : this->plugins)
-  {
-    if (plugin.instance)
-    {
-      plugin.destroy(plugin.instance);
-    }
-    if (plugin.module)
-    {
-      FreeLibrary(plugin.module);
-    }
-  }
-
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplSDL3_Shutdown();
   ImGui::DestroyContext();
 
-  SDL_GL_DestroyContext(this->context);
+  SDL_GL_DestroyContext(_context);
   SDL_DestroyWindow(_window);
   SDL_Quit();
 }
@@ -77,7 +57,7 @@ dt::view::Window::~Window()
 void dt::view::Window::ShowException(const std::exception &e)
 {
   if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e.what(), _window))
-    throw std::runtime_error(SDL_GetError());
+    THROW_SDL_ERROR;
 }
 
 bool dt::view::Window::Update()
@@ -105,22 +85,22 @@ bool dt::view::Window::Update()
     if (ImGui::BeginMenu("File"))
     {
       if (ImGui::MenuItem("New", "Ctrl+N"))
-      {
-        FileDialog::Show<FileDialog::Mode::SAVE>(this->window);
-        if (this->UpdateModal())
+      { // TODO: Redo.........
+        FileDialog::Show<FileDialog::Mode::SAVE>(window);
+        if (UpdateModal())
         {
           scene::Manager::HandleStage<scene::Action::NEW>(FileDialog::callback.path);
-          this->DefaultRender();
+          DefaultRender();
         }
         return *this;
       }
       if (ImGui::MenuItem("Open", "Ctrl+O"))
       {
-        FileDialog::Show<FileDialog::Mode::OPEN>(this->window);
-        if (this->UpdateModal())
+        FileDialog::Show<FileDialog::Mode::OPEN>(window);
+        if (UpdateModal())
         {
           scene::Manager::HandleStage<scene::Action::OPEN>(FileDialog::callback.path);
-          this->DefaultRender();
+          DefaultRender();
         }
         return *this;
       }
@@ -131,8 +111,8 @@ bool dt::view::Window::Update()
       }
       if (ImGui::MenuItem("Export", "Ctrl+E"))
       {
-        FileDialog::Show<FileDialog::Mode::SAVE>(this->window);
-        if (this->UpdateModal())
+        FileDialog::Show<FileDialog::Mode::SAVE>(window);
+        if (UpdateModal())
         {
           scene::Manager::HandleStage<scene::Action::OPEN>(FileDialog::callback.path);
         }
@@ -147,30 +127,6 @@ bool dt::view::Window::Update()
       }
       if (ImGui::MenuItem("Load Plugin"))
       {
-        HMODULE mod = LoadLibraryW(LR"(C:\Projects\DigitalTwinPlugin\install\digital_twin_plugin\bin\plugin.dll)");
-        if (!mod)
-        {
-          log::error("Failed to load plugin: {}", GetLastError());
-          return true;
-        }
-        log::event("Plugin loaded successfully");
-        auto create = reinterpret_cast<IPlugin *(*)()>(GetProcAddress(mod, "create_plugin"));
-        auto destroy = reinterpret_cast<void (*)(IPlugin *)>(GetProcAddress(mod, "destroy_plugin"));
-        if (!create || !destroy)
-        {
-          log::error("Failed to get plugin functions: {}", GetLastError());
-          FreeLibrary(mod);
-          return true;
-        }
-        IPlugin *inst = create();
-        if (!inst)
-        {
-          log::error("Failed to create plugin instance");
-          FreeLibrary(mod);
-          return true;
-        }
-        log::event("Plugin instance created: {}", inst->GetName());
-        this->plugins.push_back({mod, inst, destroy});
       }
       ImGui::EndMenu();
     }
@@ -207,20 +163,20 @@ bool dt::view::Window::Update()
     scene::StagePermit permit = scene::Manager::GetStagePermit();
     Render::CachePaths(permit.stage);
 
-    for (int i = 0; i < this->renders.size(); ++i)
+    for (int i = 0; i < renders.size(); ++i)
     {
-      Render &render = this->renders[i];
+      Render &render = renders[i];
       ImGui::Begin(render.name.c_str(), nullptr, ImGuiWindowFlags_MenuBar);
 
       render.Draw();
 
       if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
       {
-        if (this->active < 0)
+        if (active < 0)
         {
-          this->active = i;
+          active = i;
           render.SetToFreeCamera(permit.stage);
-          SDL_SetWindowRelativeMouseMode(this->window, true);
+          SDL_SetWindowRelativeMouseMode(window, true);
           io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
         }
         else
@@ -297,24 +253,18 @@ bool dt::view::Window::Update()
   /////////////////////////////////////////////////////////////////////////
   // Plugins
   /////////////////////////////////////////////////////////////////////////
-  for (auto &plugin : this->plugins)
-  {
-    if (plugin.instance)
-    {
-      plugin.instance->Draw();
-    }
-  }
+  // TODO:
 
   /////////////////////////////////////////////////////////////////////////
   // ImGUI Finish
   /////////////////////////////////////////////////////////////////////////
-  ImGui::ShowDemoWindow(&demo);
+  ImGui::ShowDemoWindow(&_showDemo);
   ImGui::Render();
   glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
   glClearColor(0, 0, 0, 0);
   glClear(GL_COLOR_BUFFER_BIT);
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-  SDL_GL_SwapWindow(this->window);
+  SDL_GL_SwapWindow(window);
 
   /////////////////////////////////////////////////////////////////////////
   // User Input
@@ -327,9 +277,9 @@ bool dt::view::Window::Update()
 
     if (event.type == SDL_EVENT_QUIT ||
         (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-         event.window.windowID == SDL_GetWindowID(this->window)))
+         event.window.windowID == SDL_GetWindowID(window)))
     {
-      this->isLive = false;
+      isLive = false;
       return false;
     }
 
@@ -342,9 +292,9 @@ bool dt::view::Window::Update()
     }
   }
 
-  if (this->active >= 0)
+  if (active >= 0)
   {
-    Controller &controller = this->renders[this->active];
+    Controller &controller = renders[active];
 
     float x, y;
     const SDL_MouseButtonFlags state = SDL_GetRelativeMouseState(&x, &y);
@@ -382,10 +332,10 @@ bool dt::view::Window::Update()
     {
       const float mouseX = io.DisplaySize.x / 2;
       const float mouseY = io.DisplaySize.y / 2;
-      SDL_WarpMouseInWindow(this->window, mouseX, mouseY);
-      SDL_SetWindowRelativeMouseMode(this->window, false);
+      SDL_WarpMouseInWindow(window, mouseX, mouseY);
+      SDL_SetWindowRelativeMouseMode(window, false);
       io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-      this->active = -1;
+      active = -1;
     }
   }
   return *this;

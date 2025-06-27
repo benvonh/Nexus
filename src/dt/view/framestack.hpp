@@ -1,21 +1,22 @@
 #pragma once
 #include "dt/scene/manager.hpp"
 #include "dt/view/render.hpp"
-#include <vector>
 
 namespace dt
 {
   namespace view
   {
-    class RenderGroup
+    template <unsigned long long MAX = 4>
+    class FrameStack
     {
     public:
-      RenderGroup() = default;
-      ~RenderGroup() = default;
-      RenderGroup(RenderGroup &&) = delete;
-      RenderGroup(const RenderGroup &) = delete;
-      RenderGroup &operator=(RenderGroup &&) = delete;
-      RenderGroup &operator=(const RenderGroup &) = delete;
+      FrameStack() = default;
+      ~FrameStack() = default;
+
+      FrameStack(FrameStack &&) = delete;
+      FrameStack(const FrameStack &) = delete;
+      FrameStack &operator=(FrameStack &&) = delete;
+      FrameStack &operator=(const FrameStack &) = delete;
 
       void SetToDefault()
       {
@@ -70,8 +71,8 @@ namespace dt
         _paths = std::move(cache);
       }
 
+      Render _renders[MAX];
       Render *_active = nullptr;
-      std::vector<Render> _renders;
       std::vector<pxr::SdfPath> _paths;
     };
   }

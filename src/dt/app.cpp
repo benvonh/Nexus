@@ -1,6 +1,17 @@
 #include "dt/app.hpp"
+#include "rclcpp/rclcpp.hpp"
 
-void dt::App::StartROS()
+dt::App::App(int argc, char **argv)
+{
+  rclcpp::init(argc, argv);
+}
+
+dt::App::~App()
+{
+  rclcpp::shutdown();
+}
+
+void dt::App::BackLoop()
 {
   _ros_thread = std::jthread(_Exec_ROS, this);
 }
@@ -16,6 +27,10 @@ void dt::App::MainLoop()
     }
     catch (const dt::custom_exception &e)
     {
+      // For now, the logic is that only DT-native exceptions
+      // are displayed while standard ones are unwound back
+      // to the main function, though, this method can handle
+      // all exception types.
       _window.ShowException(e);
     }
   }

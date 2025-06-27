@@ -6,20 +6,18 @@
 #include "pxr/usd/usd/primRange.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 #include <string>
-#include <vector>
 
 namespace dt
 {
   namespace view
   {
-    class Render final : public Controller, Parameter
+    class Render : public Controller, Parameter
     {
     public:
-      const std::string name;
-
-      Render(const std::string &id);
+            Render(const std::string &id);
       ~Render() = default;
       Render(Render &&);
+
       Render(const Render &) = delete;
       Render &operator=(Render &&) = delete;
       Render &operator=(const Render &) = delete;
@@ -42,6 +40,8 @@ namespace dt
       bool _freeCamera = true;
       pxr::GfVec2i _size = {1280, 720};
       pxr::UsdImagingGLEngine _engine;
+
+      const std::string _name;
     };
   }
 }
