@@ -165,7 +165,7 @@ namespace dt
 
       void operator<<(Entry &&entry)
       {
-        std::lock_guard _(log::_mutex);
+        std::lock_guard _(_mutex);
         entry[_index] = entry;
         _index = (_index + 1) % N;
 

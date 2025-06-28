@@ -1,0 +1,3 @@
+[submodule "vendor/OpenUSD"]
+	path = vendor/OpenUSD
+	url = https://github.com/PixarAnimationStudios/OpenUSD.git

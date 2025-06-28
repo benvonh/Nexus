@@ -14,7 +14,9 @@
                 "${workspaceFolder}/build/digital_twin/_deps/assimp-src/include",
                 "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include",
                 "${workspaceFolder}/include",
-                "C:/pixi_ws/ros2-windows/include/rclcpp"
+                "C:/pixi_ws/ros2-windows/include/rclcpp",
+                "C:/pixi_ws/ros2-windows/include/rcl_interfaces",
+                "C:/pixi_ws/ros2-windows/include/rosidl_runtime_cpp"
             ],
             "defines": [
                 "_DEBUG",
