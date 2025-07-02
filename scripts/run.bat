@@ -1,3 +1,3 @@
+call C:\pixi_ws\ros2-windows\setup.bat
 cd C:\pixi_ws\DigitalTwin
-call .\install\setup.bat
-.\install\digital_twin\lib\digital_twin\app.exe
+pixi run --manifest-path C:\pixi_ws cmd /c .\build\RelWithDebInfo\app.exe

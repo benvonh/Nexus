@@ -3,20 +3,18 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/build/digital_twin/_deps/imgui-src",
-                "${workspaceFolder}/build/digital_twin/_deps/imgui-src/backends",
-                "${workspaceFolder}/build/digital_twin/_deps/sdl3-src/include",
-                "${workspaceFolder}/build/digital_twin/_deps/stb-src",
-                "${workspaceFolder}/build/digital_twin/_deps/termcolor-src/include/termcolor",
-                "${workspaceFolder}/src",
                 "${workspaceFolder}/../ros2-windows/include",
                 "${workspaceFolder}/../usd/include",
-                "${workspaceFolder}/build/digital_twin/_deps/assimp-src/include",
-                "${workspaceFolder}/build/digital_twin/_deps/assimp-build/include",
+                "${workspaceFolder}/build/_deps/assimp-build/include",
+                "${workspaceFolder}/build/_deps/assimp-src/include",
+                "${workspaceFolder}/build/_deps/imgui-src",
+                "${workspaceFolder}/build/_deps/imgui-src/backends",
+                "${workspaceFolder}/build/_deps/sdl3-src/include",
+                "${workspaceFolder}/build/_deps/stb-src",
+                "${workspaceFolder}/build/_deps/termcolor-src/include/termcolor",
                 "${workspaceFolder}/include",
-                "C:/pixi_ws/ros2-windows/include/rclcpp",
-                "C:/pixi_ws/ros2-windows/include/rcl_interfaces",
-                "C:/pixi_ws/ros2-windows/include/rosidl_runtime_cpp"
+                "${workspaceFolder}/src",
+                "C:\\pixi_ws\\.pixi\\envs\\default\\include"
             ],
             "defines": [
                 "_DEBUG",

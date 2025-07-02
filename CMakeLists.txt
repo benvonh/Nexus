@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
 set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared build" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "Disable Assimp install" FORCE)
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "Disable Assimp export functionality" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "Disable Assimp tests" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Disable shared libraries" FORCE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -13,6 +15,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 add_compile_definitions(HOST_BUILD)
+# add_compile_definitions(TBB_USE_DEBUG=0)
+# add_compile_definitions(TBB_USE_DEBUG_BUILD=0)
 # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
 add_compile_definitions(NOMINMAX)
 # warning C4996: 'std::atomic_compare_exchange_weak_explicit':
@@ -42,9 +46,9 @@ FetchContent_Declare(STB
 
 FetchContent_MakeAvailable(SDL3 ImGUI Assimp Termcolor STB)
 
-set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/imgui-src)
-set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/termcolor-src)
-set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/${PROJECT_NAME}/_deps/stb-src)
+set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/imgui-src)
+set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
+set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/stb-src)
 
 find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED PATHS C:/usd)
@@ -62,17 +66,14 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-  src/dt/bridge/node.cpp
-  src/dt/scene/robot.cpp
-  src/dt/view/render.cpp
-  src/dt/view/window.cpp
+  src/dt/gui/sub/controller.cpp
+  src/dt/gui/sub/parameter.cpp
+  src/dt/gui/sub/render.cpp
+  src/dt/gui/window.cpp
+  src/dt/usd/world.cpp
   src/main.cpp)
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
-
-target_include_directories(${TARGET} PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 target_include_directories(${TARGET} PRIVATE 
   ${Termcolor_SOURCE_DIR}/include/termcolor
@@ -80,7 +81,9 @@ target_include_directories(${TARGET} PRIVATE
   ${ImGUI_SOURCE_DIR}/backends
   ${ImGUI_SOURCE_DIR}
   ${PXR_INCLUDE_DIRS}
-  ${STB_SOURCE_DIR})
+  ${STB_SOURCE_DIR}
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 
 target_link_libraries(${TARGET}
   ${sensor_msgs_TARGETS}

@@ -5,7 +5,7 @@
     {
       "label": "Build Digital Twin",
       "type": "shell",
-      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Preview\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\build.bat\"",
+      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\build.bat\"",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -31,7 +31,7 @@
     {
       "label": "Run Digital Twin",
       "type": "shell",
-      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Preview\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\run.bat\"",
+      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\run.bat\"",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -47,13 +47,12 @@
         "reveal": "always",
         "focus": false,
         "panel": "shared"
-      },
-      "problemMatcher": []
+      }
     },
     {
       "label": "Build and Run Digital Twin",
       "type": "shell",
-      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Preview\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\build.bat\" && call \"${workspaceFolder}\\scripts\\run.bat\"",
+      "command": "call \"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\" && call \"${workspaceFolder}\\scripts\\build.bat\" && call \"${workspaceFolder}\\scripts\\run.bat\"",
       "options": {
         "cwd": "${workspaceFolder}",
         "shell": {
@@ -63,7 +62,10 @@
             "/c"
           ]
         }
-      }
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
     }
   ]
 }
