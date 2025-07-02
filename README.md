@@ -2,7 +2,7 @@
 
 ## Installation
 
-### Dependencies
+### Dependency
 
 :warning: This may take upto 30 minutes.
 
@@ -19,9 +19,9 @@ irm https://raw.githubusercontent.com/ros2/ros2/refs/heads/kilted/pixi.toml -Out
 pixi install
 ```
 
-  Download the ROS2 [zip](https://github.com/ros2/ros2/releases/download/release-kilted-20250523/ros2-kilted-20250523-windows-release-amd64.zip) and extract into `C:\pixi_ws`
+4. Download the ROS2 [zip](https://github.com/ros2/ros2/releases/download/release-kilted-20250523/ros2-kilted-20250523-windows-release-amd64.zip) and extract into `C:\pixi_ws`
 
-4. Install OpenUSD in Developer Command Prompt for VS 2022 Preview
+5. Install OpenUSD in Developer Command Prompt for VS 2022 Preview
 
 ```ps
 cd C:\pixi_ws
@@ -33,7 +33,17 @@ git checkout v25.02
 python build_scripts\build_usd.py ..\usd
 ```
 
-Edit the environment variables so that `PATH` has `C:\pixi_ws\usd\bin;C:\pixi_ws\usd\lib` and `PYTHONPATH` has `C:\pixi_ws\usd\lib\python`
+6. Edit the environment variables so that `PATH` has `C:\pixi_ws\usd\bin;C:\pixi_ws\usd\lib` and `PYTHONPATH` has `C:\pixi_ws\usd\lib\python`
+
+7. Install FreeType from the same shell
+
+```ps
+cd C:\pixi_ws
+git clone https://github.com/microsoft/vcpkg.git
+call .\vcpkg\bootstrap-vcpkg.bat
+vcpkg install freetype
+vcpkg integrate install
+```
 
 ### Verify Setup
 
@@ -58,7 +68,14 @@ Clone this repository under `C:\pixi_ws` and execute the scripts.
 
 ## Tips for Development
 
-- From command prompt, enter the `pixi shell` and source (call) ROS2 setup before manually opening VSCode in the Digital Twin root directory.
+Open the project in VSCode by doing
+
+```ps
+cd C:\pixi_ws
+pixi shell
+call ros2-windows\setup.bat
+code DigitalTwin
+```
 
 ## Roadmap
 

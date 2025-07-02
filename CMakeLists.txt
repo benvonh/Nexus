@@ -14,9 +14,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_compile_definitions(IMGUI_ENABLE_FREETYPE)
 add_compile_definitions(HOST_BUILD)
-# add_compile_definitions(TBB_USE_DEBUG=0)
-# add_compile_definitions(TBB_USE_DEBUG_BUILD=0)
 # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
 add_compile_definitions(NOMINMAX)
 # warning C4996: 'std::atomic_compare_exchange_weak_explicit':
@@ -32,7 +31,7 @@ FetchContent_Declare(SDL3
 
 FetchContent_Declare(ImGUI
   GIT_REPOSITORY https://github.com/ocornut/imgui
-  GIT_TAG v1.91.8-docking)
+  GIT_TAG v1.92.0-docking)
 
 FetchContent_Declare(Assimp
   GIT_REPOSITORY https://github.com/assimp/assimp
@@ -51,7 +50,7 @@ set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
 set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/stb-src)
 
 find_package(OpenGL REQUIRED)
-find_package(pxr REQUIRED PATHS C:/usd)
+find_package(pxr REQUIRED PATHS C:/pixi_ws/usd)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -66,9 +65,10 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+  ${ImGUI_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
   src/dt/gui/sub/controller.cpp
   src/dt/gui/sub/parameter.cpp
-  src/dt/gui/sub/render.cpp
+  src/dt/gui/render.cpp
   src/dt/gui/window.cpp
   src/dt/usd/world.cpp
   src/main.cpp)
@@ -76,14 +76,14 @@ add_executable(${TARGET}
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
 
 target_include_directories(${TARGET} PRIVATE 
-  ${Termcolor_SOURCE_DIR}/include/termcolor
-  ${SDL3_SOURCE_DIR}/include
-  ${ImGUI_SOURCE_DIR}/backends
-  ${ImGUI_SOURCE_DIR}
-  ${PXR_INCLUDE_DIRS}
-  ${STB_SOURCE_DIR}
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
+  ${ImGUI_SOURCE_DIR}
+  ${ImGUI_SOURCE_DIR}/backends
+  ${PXR_INCLUDE_DIRS}
+  ${SDL3_SOURCE_DIR}/include
+  ${STB_SOURCE_DIR}
+  ${Termcolor_SOURCE_DIR}/include/termcolor)
 
 target_link_libraries(${TARGET}
   ${sensor_msgs_TARGETS}
