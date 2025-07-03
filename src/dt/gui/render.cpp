@@ -9,9 +9,14 @@
 #include "pxr/usd/usdGeom/camera.h"
 #include "pxr/imaging/hgiGL/texture.h"
 
+#include "SDL3/SDL_opengl.h"
+
+#include "stb_image_write.h"
+
 #include "imgui.h"
 
 #include <format>
+#include <memory>
 
 /*============================================================================*/
 static std::string generate_name()
@@ -36,6 +41,48 @@ static const char *get_path(void *user_data, int idx)
 }
 
 /*============================================================================*/
+dt::Render::FileHandler::FileHandler(int w, int h)
+    : Width(w), Height(h), Pixels(w * h * 3) {}
+
+/*============================================================================*/
+void dt::Render::FileHandler::invoke(const char *path, int extension)
+{
+    auto f = std::format("{}.{}", path, FileDialog::IMAGE_FILTER[extension].pattern);
+
+    log::event("Saving render ({}x{}) as image at '{}'", Width, Height, f);
+
+    stbi_flip_vertically_on_write(1);
+
+    switch (extension)
+    {
+    case FileDialog::ImageFormat::PNG:
+        if (!stbi_write_png(f.c_str(), Width, Height, STRIDE, Pixels.data(), Width * STRIDE))
+            log::error("Error saving as PNG");
+        break;
+    case FileDialog::ImageFormat::BMP:
+        if (!stbi_write_bmp(f.c_str(), Width, Height, STRIDE, Pixels.data()))
+            log::error("Error saving as BMP");
+        break;
+    case FileDialog::ImageFormat::TGA:
+        if (!stbi_write_tga(f.c_str(), Width, Height, STRIDE, Pixels.data()))
+            log::error("Error saving as TGA");
+        break;
+    case FileDialog::ImageFormat::JPG:
+        if (!stbi_write_jpg(f.c_str(), Width, Height, STRIDE, Pixels.data(), 100))
+            log::error("Error saving as JPG");
+        break;
+    case FileDialog::ImageFormat::HDR:
+        log::alert("HDR image format is not supported yet, saving as HDR is disabled.");
+        // TODO: Casting char to float is not a good idea
+        // if (!stbi_write_hdr(f.c_str(), Width, Height, STRIDE, reinterpret_cast<float *>(Pixels.data())));
+        //     log::error("Error saving as HDR");
+        break;
+    default:
+        log::error("Unknown image format, got {}", extension);
+    }
+}
+
+/*============================================================================*/
 dt::Render::Render() : _NAME(generate_name())
 {
     log::debug("Instantiated render object with name '{}'", _NAME);
@@ -51,8 +98,17 @@ bool dt::Render::draw()
      *****************/
     if (ImGui::BeginMenuBar())
     {
-        if (ImGui::BeginMenu("Settings"))
+        if (ImGui::BeginMenu("Options"))
         {
+            if (ImGui::MenuItem("Save render as image"))
+            {
+                auto handler = std::make_unique<FileHandler>(_Size[0], _Size[1]);
+                glBindTexture(GL_TEXTURE_2D, __get_texture());
+                glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
+                glBindTexture(GL_TEXTURE_2D, 0);
+                FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
+            }
             if (ImGui::InputInt2("Resolution", &_Size[0]))
             {
                 const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
@@ -66,8 +122,8 @@ bool dt::Render::draw()
             ImGui::Checkbox("Free Camera", &_Free_camera);
             ImGui::EndMenu();
         }
+        _Parameter.draw();
         Controller::draw();
-        Parameter::draw();
         ImGui::EndMenuBar();
     }
 
@@ -86,7 +142,7 @@ bool dt::Render::draw()
     {
         auto permit = World::GetStagePermit();
 
-        _Engine->Render(permit.Stage->GetPseudoRoot(), Parameter::get_params());
+        _Engine->Render(permit.Stage->GetPseudoRoot(), _Parameter.get_params());
     }
 
     /******************
@@ -160,7 +216,7 @@ void dt::Render::enable_free_camera()
     {
         auto permit = World::GetStagePermit();
         pxr::UsdGeomCamera c(permit.Stage->GetPrimAtPath(__Paths[_Path_index]));
-        Controller::transform_from(c.GetCamera(Parameter::get_params().frame));
+        Controller::transform_from(c.GetCamera(_Parameter.get_params().frame));
     }
     _Free_camera = true;
 }

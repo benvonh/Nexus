@@ -30,14 +30,13 @@ namespace dt
 
         void look(const float dx, const float dy, const float dt);
 
-        static void Draw();
-
-    protected:
-        void draw();
-
         auto get_frustum() const { return _Camera.GetFrustum(); }
 
         void transform_from(const pxr::GfCamera &camera);
+
+        void draw();
+
+        static void Draw();
 
     private:
         double _Yaw = 0.0;

@@ -19,7 +19,9 @@ namespace dt
         operator bool() const noexcept { return _Live; }
 
         void show_exception(const viewable_exception &);
+
         void render_frame();
+
         void handle_input();
 
     private:

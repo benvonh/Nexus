@@ -8,12 +8,11 @@ namespace dt
     public:
         Parameter();
 
-        static void Draw();
+        const auto &get_params() const { return _Params; }
 
-    protected:
         void draw();
 
-        const auto &get_params() const { return _Params; }
+        static void Draw();
 
     private:
         bool _Live = true;

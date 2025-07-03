@@ -7,13 +7,13 @@
 
 dt::Application::Application(int argc, char **argv)
 {
-    log::debug("Initializing ROS2 client library...");
+    log::debug("Initializing ROS...");
     rclcpp::init(argc, argv);
 }
 
 dt::Application::~Application()
 {
-    log::debug("Shutting down ROS2 client library...");
+    log::debug("Shutting down ROS...");
     rclcpp::shutdown();
 }
 

@@ -59,8 +59,6 @@ namespace dt
         }
       }
 
-      static inline constexpr SDL_DialogFileFilter usd_filter[] = {
-          {"USD Files", "usd;usda;usdc;usdz"}};
       // {"USD Files", "usd;usda;usdc;usdz"},
       // {"All Files", "*"}};
 

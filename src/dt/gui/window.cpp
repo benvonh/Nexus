@@ -2,6 +2,7 @@
 
 #include "dt/gui/sub/controller.h"
 #include "dt/gui/sub/parameter.h"
+#include "dt/gui/filedialog.h"
 #include "dt/exception.h"
 #include "dt/logging.h"
 
@@ -133,6 +134,8 @@ dt::Window::Window()
 
     for (auto &render : _Renders)
         render.reset();
+
+    FileDialog::SetWindow(_Window);
 }
 
 /*============================================================================*/
