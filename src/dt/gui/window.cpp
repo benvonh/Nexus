@@ -14,6 +14,8 @@
 /*============================================================================*/
 dt::Window::Window()
 {
+    log::debug("Initializing SDL3...");
+
     if (!SDL_Init(SDL_INIT_VIDEO))
         throw SDL_ERROR;
 
@@ -25,11 +27,15 @@ dt::Window::Window()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                         SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
 
+    log::debug("Creating SDL3 window...");
+
     constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
     _Window = SDL_CreateWindow("Digital Twin", 1280, 720, windowFlags);
 
     if (_Window == nullptr)
         throw SDL_ERROR;
+
+    log::debug("Creating OpenGL context...");
 
     SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     _Context = SDL_GL_CreateContext(_Window);
@@ -147,6 +153,8 @@ dt::Window::~Window()
 /*============================================================================*/
 void dt::Window::show_exception(const dt::viewable_exception &e)
 {
+    log::debug("Showing exception message...");
+
     if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e, _Window))
         throw SDL_ERROR;
 }
@@ -162,9 +170,9 @@ void dt::Window::render_frame()
 
     __draw_menu();
 
+    Render::CachePaths();
     Parameter::Draw();
     Controller::Draw();
-    Render::CachePaths();
 
     for (int i = 0; i < _Render_count; ++i)
     {
@@ -203,8 +211,7 @@ void dt::Window::handle_input()
             _Live = false;
         }
 
-        if (event.type == SDL_EVENT_KEY_DOWN &&
-            event.key.scancode == SDL_SCANCODE_Q)
+        if (event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == SDL_SCANCODE_Q)
         {
             SDL_Event quitEvent;
             quitEvent.type = SDL_EVENT_QUIT;
@@ -265,6 +272,10 @@ void dt::Window::__draw_menu()
 {
     if (ImGui::BeginMainMenuBar())
     {
+        if (ImGui::BeginMenu("File"))
+        {
+            ImGui::EndMenu();
+        }
         if (ImGui::BeginMenu("Rendering"))
         {
             ImGui::Text("Active Renders: %d/%d", _Render_count, _Renders.size());

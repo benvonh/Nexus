@@ -101,5 +101,4 @@
     "xtree": "cpp",
     "xutility": "cpp",
   },
-  "C_Cpp.default.compilerPath": "cl.exe"
 }

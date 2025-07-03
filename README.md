@@ -10,7 +10,7 @@
 
 2. Install [Visual Studio](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Community&channel=Release&version=VS2022&source=VSLandingPage&cid=2030&passive=false) - check "Desktop development with C++"
 
-3. Install ROS2 (Kilted Kaiju) in Powershell
+3. Install the ROS2 (Kilted Kaiju) environment from Powershell
 
 ```ps
 md C:\pixi_ws
@@ -21,7 +21,7 @@ pixi install
 
 4. Download the ROS2 [zip](https://github.com/ros2/ros2/releases/download/release-kilted-20250523/ros2-kilted-20250523-windows-release-amd64.zip) and extract into `C:\pixi_ws`
 
-5. Install OpenUSD in Developer Command Prompt for VS 2022 Preview
+5. Install OpenUSD from Developer Command Prompt for VS 2022 Preview
 
 ```ps
 cd C:\pixi_ws
@@ -35,7 +35,7 @@ python build_scripts\build_usd.py ..\usd
 
 6. Edit the environment variables so that `PATH` has `C:\pixi_ws\usd\bin;C:\pixi_ws\usd\lib` and `PYTHONPATH` has `C:\pixi_ws\usd\lib\python`
 
-7. Install FreeType from the same shell
+7. Install FreeType via `vcpkg` from the same shell
 
 ```ps
 cd C:\pixi_ws
@@ -64,18 +64,34 @@ usdview usd\share\usd\tutorials\authoringProperties\HelloWorld.usda
 
 ### Digital Twin
 
-Clone this repository under `C:\pixi_ws` and execute the scripts.
+Clone this repository under `C:\pixi_ws` then follow the usual steps for CMake projects.
 
-## Tips for Development
+```ps
+md C:\pixi_ws\DigitalTwin\build
+cd C:\pixi_ws\DigitalTwin\build
+cmake ..
+cmake --build . --target app --config Release -- /m
+.\Release\app.exe
+```
 
-Open the project in VSCode by doing
+If you are too lazy, simply execute the scripts in order of configure -> build -> run.
+
+If your IDE of choice is Visual Studio, skip the build step - just make note of the below print.
+
+## Notes
+
+1. To set up a proper development environment, enter the following in Command Prompt.
 
 ```ps
 cd C:\pixi_ws
 pixi shell
 call ros2-windows\setup.bat
-code DigitalTwin
+
+devenv           # Visual Studio
+code DigitalTwin # Visual Studio Code
 ```
+
+2. Debug builds do NOT currently work. Build with RelWithDebInfo instead.
 
 ## Roadmap
 

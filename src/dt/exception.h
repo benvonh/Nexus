@@ -33,7 +33,7 @@ namespace dt
 
             : viewable_exception(
                   std::format(
-                      "{}({},{})@{}: {}\n{}",
+                      "{}({},{})@{}: {}\n\n{}",
                       src_loc.file_name(),
                       src_loc.line(),
                       src_loc.column(),

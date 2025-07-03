@@ -1,8 +1,12 @@
 #pragma once
+
 #include "dt/usd/permit.h"
+
 #include "pxr/usd/usd/stage.h"
+
 #include <chrono>
 #include <mutex>
+#include <string>
 
 namespace dt
 {
@@ -14,21 +18,26 @@ namespace dt
 
         static inline const auto START = std::chrono::steady_clock::now();
 
-        static double get_time() noexcept
+        [[nodiscard]] static double GetTime() noexcept
         {
             using namespace std::chrono;
             return duration<double>(steady_clock::now() - START).count();
         }
 
-        static StagePermit get_stage_permit() noexcept
+        [[nodiscard]] static StagePermit GetStagePermit() noexcept
         {
-            return StagePermit(&_Mutex, _Stage);
+            return StagePermit(&__Mutex, __Stage);
         }
 
-    private:
-        static pxr::UsdStageRefPtr default_stage();
+        static void NewStage(const std::string &path);
+        static void OpenStage(const std::string &path);
+        static void SaveStage();
+        static void ExportStage(const std::string &path);
 
-        static inline std::mutex _Mutex;
-        static inline pxr::UsdStageRefPtr _Stage = World::default_stage();
+    private:
+        [[nodiscard]] static pxr::UsdStageRefPtr __DefaultStage();
+
+        static inline std::mutex __Mutex;
+        static inline pxr::UsdStageRefPtr __Stage = __DefaultStage();
     };
 }

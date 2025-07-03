@@ -44,7 +44,7 @@ namespace dt
         double _Pitch = 90.0;
         pxr::GfCamera _Camera;
 
-        static inline float __Speed = 10.f;
+        static inline float __Speed = 5.f;
         static inline float __Sense = 10.f;
         static inline double __Yaw = 0.0;
         static inline double __Pitch = 90.0;

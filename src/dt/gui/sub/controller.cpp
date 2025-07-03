@@ -58,12 +58,12 @@ void dt::Controller::move(const float dt)
     _Camera.SetTransform(transform);
 }
 
-template void dt::Controller::move<dt::Controller::Direction::FORWARD>(const float dt);
-template void dt::Controller::move<dt::Controller::Direction::BACKWARD>(const float dt);
-template void dt::Controller::move<dt::Controller::Direction::LEFT>(const float dt);
-template void dt::Controller::move<dt::Controller::Direction::RIGHT>(const float dt);
-template void dt::Controller::move<dt::Controller::Direction::UP>(const float dt);
-template void dt::Controller::move<dt::Controller::Direction::DOWN>(const float dt);
+template void dt::Controller::move<dt::Controller::Direction::FORWARD>(const float);
+template void dt::Controller::move<dt::Controller::Direction::BACKWARD>(const float);
+template void dt::Controller::move<dt::Controller::Direction::LEFT>(const float);
+template void dt::Controller::move<dt::Controller::Direction::RIGHT>(const float);
+template void dt::Controller::move<dt::Controller::Direction::UP>(const float);
+template void dt::Controller::move<dt::Controller::Direction::DOWN>(const float);
 
 /*============================================================================*/
 void dt::Controller::look(const float dx, const float dy, const float dt)

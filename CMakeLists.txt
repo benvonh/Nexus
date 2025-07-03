@@ -14,10 +14,17 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+add_compile_options(/Zc:preprocessor)
+
 add_compile_definitions(IMGUI_ENABLE_FREETYPE)
 add_compile_definitions(HOST_BUILD)
+
+# https://github.com/microsoft/STL/issues/3063
+add_compile_definitions(_USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION=0)
+
 # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
 add_compile_definitions(NOMINMAX)
+
 # warning C4996: 'std::atomic_compare_exchange_weak_explicit':
 # warning STL4029: std::atomic_*() overloads for shared_ptr are deprecated in C++20.
 # The shared_ptr specialization of std::atomic provides superior functionality.
@@ -66,6 +73,7 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
   ${ImGUI_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
+  src/dt/app/application.cpp
   src/dt/gui/sub/controller.cpp
   src/dt/gui/sub/parameter.cpp
   src/dt/gui/render.cpp

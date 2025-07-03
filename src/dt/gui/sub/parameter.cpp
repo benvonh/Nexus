@@ -61,7 +61,7 @@ void dt::Parameter::Draw()
     if (__Live)
     {
         __Time = __Latest;
-        __Latest = World::get_time();
+        __Latest = World::GetTime();
     }
     if (ImGui::SliderFloat("Time Code", &__Time, 0.f, __Latest))
     {
@@ -94,7 +94,7 @@ void dt::Parameter::draw()
         if (_Live)
         {
             _Time = _Latest;
-            _Latest = World::get_time();
+            _Latest = World::GetTime();
         }
         if (ImGui::SliderFloat("Time Code", &_Time, 0.f, _Latest))
         {

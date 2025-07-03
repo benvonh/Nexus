@@ -14,7 +14,6 @@
 #include <format>
 
 /*============================================================================*/
-// TODO: Is this gonna work? lol
 static std::string generate_name()
 {
     static unsigned calls = 0;
@@ -37,7 +36,10 @@ static const char *get_path(void *user_data, int idx)
 }
 
 /*============================================================================*/
-dt::Render::Render() : _NAME(generate_name()) {}
+dt::Render::Render() : _NAME(generate_name())
+{
+    log::debug("Instantiated render object with name '{}'", _NAME);
+}
 
 /*============================================================================*/
 bool dt::Render::draw()
@@ -82,7 +84,7 @@ bool dt::Render::draw()
         _Engine->SetCameraPath(__Paths[_Path_index]);
     }
     {
-        auto permit = World::get_stage_permit();
+        auto permit = World::GetStagePermit();
 
         _Engine->Render(permit.Stage->GetPseudoRoot(), Parameter::get_params());
     }
@@ -156,7 +158,7 @@ void dt::Render::enable_free_camera()
 {
     if (!_Free_camera)
     {
-        auto permit = World::get_stage_permit();
+        auto permit = World::GetStagePermit();
         pxr::UsdGeomCamera c(permit.Stage->GetPrimAtPath(__Paths[_Path_index]));
         Controller::transform_from(c.GetCamera(Parameter::get_params().frame));
     }
@@ -189,7 +191,7 @@ void dt::Render::CachePaths()
 
     static size_t hits = 0;
 
-    auto premit = World::get_stage_permit();
+    auto premit = World::GetStagePermit();
 
     for (const pxr::UsdPrim &prim : premit.Stage->Traverse())
     {

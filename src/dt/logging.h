@@ -1,7 +1,4 @@
 #pragma once
-// https://github.com/microsoft/STL/issues/3063
-#undef _USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION
-#define _USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION 0
 #include "termcolor.hpp"
 #include <atomic>
 #include <format>
