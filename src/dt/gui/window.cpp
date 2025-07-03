@@ -3,6 +3,7 @@
 #include "dt/gui/sub/controller.h"
 #include "dt/gui/sub/parameter.h"
 #include "dt/gui/filedialog.h"
+#include "dt/usd/world.h"
 #include "dt/exception.h"
 #include "dt/logging.h"
 
@@ -11,6 +12,12 @@
 #include "imgui.h"
 
 #define SDL_ERROR std::runtime_error(dt::exception(SDL_GetError()))
+
+/*============================================================================*/
+void dt::Window::FileHandler::invoke(const char *path, int _)
+{
+    FileHandler::Path = path;
+}
 
 /*============================================================================*/
 dt::Window::Window()
@@ -165,13 +172,15 @@ void dt::Window::show_exception(const dt::viewable_exception &e)
 /*============================================================================*/
 void dt::Window::render_frame()
 {
+RENDER_FRAME_START:
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     ImGui::DockSpaceOverViewport();
     ImGuiIO &io = ImGui::GetIO();
 
-    __draw_menu();
+    if (!__draw_menu())
+        goto RENDER_FRAME_START;
 
     Render::CachePaths();
     Parameter::Draw();
@@ -271,12 +280,63 @@ void dt::Window::handle_input()
 }
 
 /*============================================================================*/
-void dt::Window::__draw_menu()
+bool dt::Window::__draw_menu()
 {
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
         {
+            // TODO: Should probably check if unsaved and prompt user
+            if (ImGui::MenuItem("New", "Ctrl+N"))
+            {
+                FileHandler::Path.clear();
+                FileDialog::Show<FileDialog::Mode::SAVE>(std::make_unique<FileHandler>(), FileDialog::USD_FILTER);
+
+                __modal_update_during_file_dialog();
+
+                if (!FileHandler::Path.empty())
+                {
+                    for (auto &render : _Renders)
+                        render.reset();
+
+                    World::NewStage(FileHandler::Path);
+                }
+
+                return false;
+            }
+            if (ImGui::MenuItem("Open", "Ctrl+O"))
+            {
+                FileHandler::Path.clear();
+                FileDialog::Show<FileDialog::Mode::OPEN>(std::make_unique<FileHandler>(), FileDialog::USD_FILTER);
+
+                __modal_update_during_file_dialog();
+
+                if (!FileHandler::Path.empty())
+                {
+                    for (auto &render : _Renders)
+                        render.reset();
+
+                    World::OpenStage(FileHandler::Path);
+                }
+
+                return false;
+            }
+            if (ImGui::MenuItem("Save", "Ctrl+S"))
+            {
+                World::SaveStage();
+            }
+            if (ImGui::MenuItem("Export", "Ctrl+E"))
+            {
+                FileHandler::Path.clear();
+                FileDialog::Show<FileDialog::Mode::SAVE>(std::make_unique<FileHandler>(), FileDialog::USD_FILTER);
+
+                __modal_update_during_file_dialog();
+
+                if (!FileHandler::Path.empty())
+                    World::ExportStage(FileHandler::Path);
+
+                return false;
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Rendering"))
@@ -304,4 +364,23 @@ void dt::Window::__draw_menu()
     }
     else
         throw exception("Unexpected programming error");
+
+    return true;
+}
+
+/*============================================================================*/
+void dt::Window::__modal_update_during_file_dialog()
+{
+    // VERY DANGEROUS!
+    //
+    // We assume that the GUI is inaccessible
+    // while a modal window is open (file dialog)
+    //
+    // We must NOT resume rendering where we left off;
+    // Restart the frame then start rendering again!
+    while (!FileDialog::Done)
+    {
+        this->render_frame();
+        this->handle_input();
+    }
 }

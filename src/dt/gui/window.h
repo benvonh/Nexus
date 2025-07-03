@@ -7,11 +7,24 @@
 #include "SDL3/SDL.h"
 
 #include <array>
+#include <string>
 
 namespace dt
 {
     class Window
     {
+        struct FileHandler : FileDialog::Handler
+        {
+            ~FileHandler() override = default;
+
+            void invoke(const char *, int) override;
+
+            // Copy the path instead of handling it
+            // in the callback thread to account for
+            // various actions to do with the USD stage.
+            static inline std::string Path;
+        };
+
     public:
         Window();
         ~Window();
@@ -25,7 +38,9 @@ namespace dt
         void handle_input();
 
     private:
-        void __draw_menu();
+        bool __draw_menu();
+
+        void __modal_update_during_file_dialog();
 
         bool _Live = true;
         bool _Show_demo = false;
@@ -35,6 +50,7 @@ namespace dt
 
         int _Render_count = 1;
         int _Render_active = -1;
+
         std::array<Render, 4> _Renders;
     };
 }

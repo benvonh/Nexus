@@ -91,7 +91,7 @@ dt::Render::Render() : _NAME(generate_name())
 /*============================================================================*/
 bool dt::Render::draw()
 {
-    ImGui::Begin(_NAME.data(), nullptr, ImGuiWindowFlags_MenuBar);
+    ImGui::Begin(_NAME.c_str(), nullptr, ImGuiWindowFlags_MenuBar);
 
     /*****************
      * SHOW MENU BAR *
@@ -141,7 +141,6 @@ bool dt::Render::draw()
     }
     {
         auto permit = World::GetStagePermit();
-
         _Engine->Render(permit.Stage->GetPseudoRoot(), _Parameter.get_params());
     }
 

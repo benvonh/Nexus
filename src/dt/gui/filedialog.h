@@ -7,6 +7,7 @@
 #include "SDL3/SDL_video.h"
 
 #include <array>
+#include <atomic>
 #include <memory>
 
 namespace dt
@@ -28,18 +29,32 @@ namespace dt
         };
 
         template <Mode MODE, size_t NF>
-        static void Show(std::unique_ptr<Handler> handler, std::array<SDL_DialogFileFilter, NF> filter)
+        static void Show(std::unique_ptr<Handler> handler,
+                         std::array<SDL_DialogFileFilter, NF> filter)
         {
             if (__Window == nullptr)
                 throw exception("Window is not set!");
 
             __Handler = std::move(handler);
 
+            Done = false;
+
             if constexpr (MODE == Mode::OPEN)
-                SDL_ShowOpenFileDialog(__Callback, nullptr, __Window, filter.data(), NF, nullptr, false);
+                SDL_ShowOpenFileDialog(__Callback,
+                                       nullptr,
+                                       __Window,
+                                       filter.data(),
+                                       NF,
+                                       nullptr,
+                                       false);
 
             if constexpr (MODE == Mode::SAVE)
-                SDL_ShowSaveFileDialog(__Callback, nullptr, __Window, filter.data(), NF, nullptr);
+                SDL_ShowSaveFileDialog(__Callback,
+                                       nullptr,
+                                       __Window,
+                                       filter.data(),
+                                       NF,
+                                       nullptr);
         }
 
         static void SetWindow(SDL_Window *window) noexcept { __Window = window; }
@@ -63,6 +78,8 @@ namespace dt
         static inline constexpr std::array<SDL_DialogFileFilter, 1> USD_FILTER = {
             SDL_DialogFileFilter{"USD Files", "usd;usda;usdc;usdz"}};
 
+        static inline std::atomic<bool> Done = false;
+
     private:
         static void __Callback(void *_, const char *const *path, int ext) noexcept
         {
@@ -80,6 +97,7 @@ namespace dt
                 else [[likely]]
                     __Handler->invoke(path[0], ext);
             }
+            Done = true;
         }
 
         static inline SDL_Window *__Window = nullptr;

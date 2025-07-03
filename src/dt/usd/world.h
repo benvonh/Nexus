@@ -30,8 +30,11 @@ namespace dt
         }
 
         static void NewStage(const std::string &path);
+
         static void OpenStage(const std::string &path);
+
         static void SaveStage();
+
         static void ExportStage(const std::string &path);
 
     private:
