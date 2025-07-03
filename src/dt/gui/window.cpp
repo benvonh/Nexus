@@ -265,11 +265,29 @@ void dt::Window::__draw_menu()
 {
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::MenuItem("Hi"))
+        if (ImGui::BeginMenu("Rendering"))
         {
+            ImGui::Text("Active Renders: %d/%d", _Render_count, _Renders.size());
+
+            if (ImGui::Button("Add Render Viewport"))
+            {
+                if (_Render_count < _Renders.size())
+                {
+                    _Render_count++;
+                    _Renders[_Render_count - 1].reset();
+                }
+            }
+            if (ImGui::Button("Remove Render Viewport"))
+            {
+                if (_Render_count > 1)
+                {
+                    _Render_count--;
+                }
+            }
+            ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
     else
-        throw exception("Why this no work :(");
+        throw exception("Unexpected programming error");
 }

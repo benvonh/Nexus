@@ -5,7 +5,7 @@
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 #include <optional>
-#include <string_view>
+#include <string>
 
 namespace dt
 {
@@ -23,7 +23,7 @@ namespace dt
     private:
         unsigned __get_texture();
 
-        const std::string_view _NAME;
+        const std::string _NAME;
 
         int _Path_index = 0;
 

@@ -12,15 +12,14 @@
 #include "imgui.h"
 
 #include <format>
-#include <string_view>
 
 /*============================================================================*/
 // TODO: Is this gonna work? lol
-static std::string_view generate_name()
+static std::string generate_name()
 {
     static unsigned calls = 0;
 
-    std::string_view name;
+    std::string name;
 
     if (calls++ > 0)
         name = std::format("USD Viewport (#{})", calls);

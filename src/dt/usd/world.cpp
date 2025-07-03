@@ -32,9 +32,9 @@ pxr::UsdStageRefPtr dt::World::default_stage()
     axisX.CreateHeightAttr(pxr::VtValue(1.0));
     axisY.CreateHeightAttr(pxr::VtValue(1.0));
     axisZ.CreateHeightAttr(pxr::VtValue(1.0));
-    axisX.CreateRadiusAttr(pxr::VtValue(0.001));
-    axisY.CreateRadiusAttr(pxr::VtValue(0.001));
-    axisZ.CreateRadiusAttr(pxr::VtValue(0.001));
+    axisX.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisY.CreateRadiusAttr(pxr::VtValue(0.01));
+    axisZ.CreateRadiusAttr(pxr::VtValue(0.01));
     axisX.AddTranslateXOp().Set(0.5);
     axisY.AddTranslateYOp().Set(0.5);
     axisZ.AddTranslateZOp().Set(0.5);
