@@ -1,5 +1,6 @@
 #include "application.h"
 
+#include "dt/gui/window.h"
 #include "dt/exception.h"
 #include "dt/logging.h"
 
@@ -19,16 +20,18 @@ dt::Application::~Application()
 
 void dt::Application::main_loop()
 {
-    while (_Window)
+    Window window;
+
+    while (window)
     {
         try
         {
-            _Window.render_frame();
-            _Window.handle_input();
+            window.render_frame();
+            window.handle_input();
         }
         catch (const dt::viewable_exception &e)
         {
-            _Window.show_exception(e);
+            window.show_exception(e);
         }
     }
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include "dt/gui/window.h"
-
 namespace dt
 {
     class Application
@@ -12,8 +10,5 @@ namespace dt
         ~Application();
 
         void main_loop();
-
-    private:
-        Window _Window;
     };
 }
