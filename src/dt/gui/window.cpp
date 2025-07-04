@@ -2,7 +2,7 @@
 
 #include "dt/gui/sub/controller.h"
 #include "dt/gui/sub/parameter.h"
-#include "dt/gui/filedialog.h"
+#include "dt/gui/file_dialog.h"
 #include "dt/usd/world.h"
 #include "dt/exception.h"
 #include "dt/logging.h"
@@ -182,9 +182,13 @@ RENDER_FRAME_START:
     if (!__draw_menu())
         goto RENDER_FRAME_START;
 
-    Render::CachePaths();
+    _Browser.draw();
+    _Logs.draw();
+
     Parameter::Draw();
     Controller::Draw();
+
+    Render::CachePaths();
 
     for (int i = 0; i < _Render_count; ++i)
     {

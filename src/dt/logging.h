@@ -41,7 +41,7 @@ namespace dt
         /// @tparam N
         ///
         template <size_t N>
-        class Data
+        class Buffer
         {
         public:
             ///
@@ -223,7 +223,7 @@ namespace dt
         log &operator=(log &&) = delete;
         log &operator=(const log &) = delete;
 
-        static inline Data<100> Data;
+        static inline Buffer<100> Data;
 
     private:
         static inline std::mutex _Mutex;

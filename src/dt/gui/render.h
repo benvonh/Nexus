@@ -2,7 +2,7 @@
 
 #include "dt/gui/sub/controller.h"
 #include "dt/gui/sub/parameter.h"
-#include "dt/gui/filedialog.h"
+#include "dt/gui/file_dialog.h"
 
 #include "pxr/base/gf/vec2i.h"
 #include "pxr/usd/sdf/path.h"

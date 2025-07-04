@@ -187,7 +187,7 @@ bool dt::Render::draw()
     ImGui::SetCursorPos(offset);
     ImGui::Image(__get_texture(), size, ImVec2(0, 1), ImVec2(1, 0));
 
-    bool clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
+    const bool clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
 
     ImGui::End();
 

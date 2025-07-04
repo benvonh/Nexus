@@ -1,5 +1,7 @@
 #pragma once
 
+#include "dt/gui/browser.h"
+#include "dt/gui/logs.h"
 #include "dt/gui/render.h"
 #include "dt/exception.h"
 
@@ -47,6 +49,10 @@ namespace dt
 
         SDL_Window *_Window = nullptr;
         SDL_GLContext _Context = nullptr;
+
+        Browser _Browser;
+
+        Logs _Logs;
 
         int _Render_count = 1;
         int _Render_active = -1;

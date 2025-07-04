@@ -77,6 +77,8 @@ add_executable(${TARGET}
   src/dt/app/application.cpp
   src/dt/gui/sub/controller.cpp
   src/dt/gui/sub/parameter.cpp
+  src/dt/gui/browser.cpp
+  src/dt/gui/logs.cpp
   src/dt/gui/render.cpp
   src/dt/gui/window.cpp
   src/dt/usd/world.cpp
