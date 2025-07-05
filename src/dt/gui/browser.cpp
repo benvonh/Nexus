@@ -14,9 +14,9 @@ void dt::Browser::draw()
         size_t treeDepth = 0;
         uint64_t treeStack = 0;
 
-        auto permit = World::GetStagePermit();
+        auto [stage, _] = World::GetStagePermit();
 
-        const auto range = pxr::UsdPrimRange::PreAndPostVisit(permit.Stage->GetPseudoRoot());
+        const auto range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
 
         for (auto iterator = range.cbegin(); iterator != range.cend(); iterator++)
         {

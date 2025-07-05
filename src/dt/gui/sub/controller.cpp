@@ -72,6 +72,9 @@ void dt::Controller::look(const float dx, const float dy, const float dt)
 
     _Yaw += dx * q;
     _Pitch += dy * q;
+
+    _Yaw = _Yaw > 180.0 ? _Yaw - 360.0 : _Yaw;
+    _Yaw = _Yaw < -180.0 ? _Yaw + 360.0 : _Yaw;
     _Pitch = std::clamp(_Pitch, 0.0, 180.0);
 
     pxr::GfRotation rotationZ(pxr::GfVec3d(0, 0, 1), _Yaw);

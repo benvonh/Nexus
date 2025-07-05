@@ -3,12 +3,17 @@ project(digital_twin)
 
 set(TARGET app)
 set(CMAKE_CXX_STANDARD 23)
-set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
-set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared build" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "Disable Assimp tests" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "Disable Assimp install" FORCE)
 set(ASSIMP_NO_EXPORT ON CACHE BOOL "Disable Assimp export functionality" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "Disable Assimp tests" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Disable shared libraries" FORCE)
+set(SDL_DISABLE_INSTALL ON CACHE BOOL "Disable SDL install" FORCE)
+set(SDL_DISABLE_INSTALL_DOCS ON CACHE BOOL "Disable SDL install docs" FORCE)
+set(SDL_INSTALL_TESTS OFF CACHE BOOL "Disable SDL install tests" FORCE)
+set(SDL_SHARED OFF CACHE BOOL "Disable SDL shared build" FORCE)
+set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
+set(SDL_TESTS OFF CACHE BOOL "Disable SDL tests" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "Disable SDL test library" FORCE)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
@@ -65,7 +70,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(urdf REQUIRED)
 
-add_executable(${TARGET}
+add_library(ImGUI STATIC 
   ${ImGUI_SOURCE_DIR}/imgui.cpp
   ${ImGUI_SOURCE_DIR}/imgui_demo.cpp
   ${ImGUI_SOURCE_DIR}/imgui_draw.cpp
@@ -73,15 +78,37 @@ add_executable(${TARGET}
   ${ImGUI_SOURCE_DIR}/imgui_widgets.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_sdl3.cpp
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
-  ${ImGUI_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp
+  ${ImGUI_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp)
+
+target_include_directories(ImGUI PUBLIC 
+  ${SDL3_SOURCE_DIR}/include
+  ${ImGUI_SOURCE_DIR}/backends
+  ${ImGUI_SOURCE_DIR})
+
+add_executable(${TARGET}
   src/dt/app/application.cpp
+  src/dt/app/application.h
   src/dt/gui/sub/controller.cpp
+  src/dt/gui/sub/controller.h
   src/dt/gui/sub/parameter.cpp
+  src/dt/gui/sub/parameter.h
   src/dt/gui/browser.cpp
+  src/dt/gui/browser.h
+  src/dt/gui/file_dialog.h
   src/dt/gui/logs.cpp
+  src/dt/gui/logs.h
   src/dt/gui/render.cpp
+  src/dt/gui/render.h
   src/dt/gui/window.cpp
+  src/dt/gui/window.h
+  src/dt/usd/permit.h
+  src/dt/usd/robot.cpp
+  src/dt/usd/robot.h
   src/dt/usd/world.cpp
+  src/dt/usd/world.h
+  src/dt/exception.h
+  src/dt/logging.h
+  src/dt/utility.h
   src/main.cpp)
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
@@ -103,7 +130,8 @@ target_link_libraries(${TARGET}
   ${PXR_LIBRARIES}
   SDL3::SDL3-static
   OpenGL::GL
-  assimp)
+  assimp
+  ImGUI)
 
 install(TARGETS ${TARGET} DESTINATION lib/${PROJECT_NAME})
 

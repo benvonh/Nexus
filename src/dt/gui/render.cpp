@@ -91,106 +91,111 @@ dt::Render::Render() : _NAME(generate_name())
 /*============================================================================*/
 bool dt::Render::draw()
 {
-    ImGui::Begin(_NAME.c_str(), nullptr, ImGuiWindowFlags_MenuBar);
+    bool clicked = false;
 
-    /*****************
-     * SHOW MENU BAR *
-     *****************/
-    if (ImGui::BeginMenuBar())
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2());
+
+    if (ImGui::Begin(_NAME.c_str(), nullptr, ImGuiWindowFlags_MenuBar))
     {
-        if (ImGui::BeginMenu("Options"))
+
+        /*****************
+         * SHOW MENU BAR *
+         *****************/
+        if (ImGui::BeginMenuBar())
         {
-            if (ImGui::MenuItem("Save render as image"))
+            if (ImGui::BeginMenu("Options"))
             {
-                auto handler = std::make_unique<FileHandler>(_Size[0], _Size[1]);
-                glBindTexture(GL_TEXTURE_2D, __get_texture());
-                glPixelStorei(GL_PACK_ALIGNMENT, 1);
-                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
-                glBindTexture(GL_TEXTURE_2D, 0);
-                FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
+                if (ImGui::MenuItem("Save render as image"))
+                {
+                    auto handler = NewPtr<FileHandler>(_Size[0], _Size[1]);
+                    glBindTexture(GL_TEXTURE_2D, __get_texture());
+                    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                    FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
+                }
+                if (ImGui::InputInt2("Resolution", &_Size[0]))
+                {
+                    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
+                    _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
+                    _Engine->SetRenderBufferSize(_Size);
+                }
+                if (ImGui::Combo("Camera Path", &_Path_index, get_path, (void *)__Paths, __Cached_paths))
+                {
+                    _Free_camera = false;
+                }
+                ImGui::Checkbox("Free Camera", &_Free_camera);
+                ImGui::EndMenu();
             }
-            if (ImGui::InputInt2("Resolution", &_Size[0]))
-            {
-                const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
-                _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-                _Engine->SetRenderBufferSize(_Size);
-            }
-            if (ImGui::Combo("Camera Path", &_Path_index, get_path, (void *)__Paths, __Cached_paths))
-            {
-                _Free_camera = false;
-            }
-            ImGui::Checkbox("Free Camera", &_Free_camera);
-            ImGui::EndMenu();
+            _Parameter.draw();
+            Controller::draw();
+            ImGui::EndMenuBar();
         }
-        _Parameter.draw();
-        Controller::draw();
-        ImGui::EndMenuBar();
-    }
 
-    /****************
-     * RENDER SCENE *
-     ****************/
-    if (_Free_camera || _Path_index >= __Cached_paths)
-    {
-        const pxr::GfFrustum f = Controller::get_frustum();
-        _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
-    }
-    else
-    {
-        _Engine->SetCameraPath(__Paths[_Path_index]);
-    }
-    {
-        auto permit = World::GetStagePermit();
-        _Engine->Render(permit.Stage->GetPseudoRoot(), _Parameter.get_params());
-    }
-
-    /******************
-     * DISPLAY RENDER *
-     ******************/
-    ImVec2 size(_Size[0], _Size[1]);
-    ImVec2 space = ImGui::GetContentRegionAvail();
-    ImVec2 offset = ImGui::GetCursorPos();
-
-    switch ((size.y > space.y) << 1 | (size.x > space.x))
-    {
-    case 0b00:
-        offset.x += (space.x - size.x) / 2;
-        offset.y += (space.y - size.y) / 2;
-        break;
-    case 0b01:
-        size.x = space.x;
-        size.y *= space.x / size.x;
-        offset.y += (space.y - size.y) / 2;
-        break;
-    case 0b10:
-        size.y = space.y;
-        size.x *= space.y / size.y;
-        offset.x += (space.x - size.x) / 2;
-        break;
-    case 0b11:
-        float Sx = space.x / size.x;
-        float Sy = space.y / size.y;
-        if (Sx < Sy)
+        /****************
+         * RENDER SCENE *
+         ****************/
+        if (_Free_camera || _Path_index >= __Cached_paths)
         {
-            size.x = space.x;
-            size.y *= Sx;
-            offset.y += (space.y - size.y) / 2;
+            const pxr::GfFrustum f = Controller::get_frustum();
+            _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
         }
         else
         {
-            size.y = space.y;
-            size.x *= Sy;
-            offset.x += (space.x - size.x) / 2;
+            _Engine->SetCameraPath(__Paths[_Path_index]);
         }
-        break;
+        {
+            auto [stage, _] = World::GetStagePermit();
+            _Engine->Render(stage->GetPseudoRoot(), _Parameter.get_params());
+        }
+
+        /******************
+         * DISPLAY RENDER *
+         ******************/
+        ImVec2 size(_Size[0], _Size[1]);
+        ImVec2 space = ImGui::GetContentRegionAvail();
+        ImVec2 offset = ImGui::GetCursorPos();
+
+        switch ((size.y > space.y) << 1 | (size.x > space.x))
+        {
+        case 0b00:
+            offset.x += (space.x - size.x) / 2;
+            offset.y += (space.y - size.y) / 2;
+            break;
+        case 0b01:
+            size.x = space.x;
+            size.y *= space.x / size.x;
+            offset.y += (space.y - size.y) / 2;
+            break;
+        case 0b10:
+            size.y = space.y;
+            size.x *= space.y / size.y;
+            offset.x += (space.x - size.x) / 2;
+            break;
+        case 0b11:
+            float Sx = space.x / size.x;
+            float Sy = space.y / size.y;
+            if (Sx < Sy)
+            {
+                size.x = space.x;
+                size.y *= Sx;
+                offset.y += (space.y - size.y) / 2;
+            }
+            else
+            {
+                size.y = space.y;
+                size.x *= Sy;
+                offset.x += (space.x - size.x) / 2;
+            }
+            break;
+        }
+        ImGui::SetCursorPos(offset);
+        ImGui::Image(__get_texture(), size, ImVec2(0, 1), ImVec2(1, 0));
+
+        clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
     }
-    ImGui::SetCursorPos(offset);
-    ImGui::Image(__get_texture(), size, ImVec2(0, 1), ImVec2(1, 0));
-
-    const bool clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
-
     ImGui::End();
-
+    ImGui::PopStyleVar();
     return clicked;
 }
 
@@ -213,8 +218,8 @@ void dt::Render::enable_free_camera()
 {
     if (!_Free_camera)
     {
-        auto permit = World::GetStagePermit();
-        pxr::UsdGeomCamera c(permit.Stage->GetPrimAtPath(__Paths[_Path_index]));
+        auto [stage, _] = World::GetStagePermit();
+        pxr::UsdGeomCamera c(stage->GetPrimAtPath(__Paths[_Path_index]));
         Controller::transform_from(c.GetCamera(_Parameter.get_params().frame));
     }
     _Free_camera = true;
@@ -244,11 +249,13 @@ void dt::Render::CachePaths()
 {
     static bool logMaxHit = false;
 
-    static size_t hits = 0;
+    static size_t hits;
 
-    auto premit = World::GetStagePermit();
+    hits = 0;
 
-    for (const pxr::UsdPrim &prim : premit.Stage->Traverse())
+    auto [stage, _] = World::GetStagePermit();
+
+    for (const pxr::UsdPrim &prim : stage->Traverse())
     {
         if (prim.IsA<pxr::UsdGeomCamera>())
         {

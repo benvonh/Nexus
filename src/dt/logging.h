@@ -1,5 +1,7 @@
 #pragma once
+
 #include "termcolor.hpp"
+
 #include <atomic>
 #include <format>
 #include <iostream>
@@ -77,7 +79,9 @@ namespace dt
                 }
 
                 bool operator!=(pointer p) const { return _Count > 0 || _Ptr != p; }
+
                 const pointer operator->() const { return _Ptr; }
+
                 const reference operator*() const { return *_Ptr; }
 
             private:
@@ -93,7 +97,9 @@ namespace dt
                 switch (entry.Type)
                 {
                 case Type::Debug:
-                    std::cout << termcolor::grey;
+                    //NOTE: Black on Windows terminal
+                    //std::cout << termcolor::grey;
+                    std::cout << termcolor::bright_grey;
                     break;
                 case Type::Event:
                     std::cout << termcolor::green;

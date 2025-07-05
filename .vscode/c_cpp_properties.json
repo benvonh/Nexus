@@ -14,7 +14,9 @@
                 "${workspaceFolder}/build/_deps/termcolor-src/include/termcolor",
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/src",
-                "C:\\pixi_ws\\.pixi\\envs\\default\\include"
+                "C:\\pixi_ws\\.pixi\\envs\\default\\include",
+                "C:/pixi_ws/ros2-windows/include/urdf",
+                "C:/pixi_ws/ros2-windows/include/urdfdom_headers"
             ],
             "defines": [
                 "_DEBUG",

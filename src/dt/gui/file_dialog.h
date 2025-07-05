@@ -2,13 +2,13 @@
 
 #include "dt/exception.h"
 #include "dt/logging.h"
+#include "dt/utility.h"
 
 #include "SDL3/SDL_dialog.h"
 #include "SDL3/SDL_video.h"
 
 #include <array>
 #include <atomic>
-#include <memory>
 
 namespace dt
 {
@@ -29,8 +29,7 @@ namespace dt
         };
 
         template <Mode MODE, size_t NF>
-        static void Show(std::unique_ptr<Handler> handler,
-                         std::array<SDL_DialogFileFilter, NF> filter)
+        static void Show(Ptr<Handler> handler, std::array<SDL_DialogFileFilter, NF> filter)
         {
             if (__Window == nullptr)
                 throw exception("Window is not set!");
@@ -100,8 +99,9 @@ namespace dt
             Done = true;
         }
 
+        // Should be initialized to the parent window to become modal
         static inline SDL_Window *__Window = nullptr;
-
-        static inline std::unique_ptr<Handler> __Handler;
+        // There should only be one valid handler when a file dialog is shown anyway
+        static inline Ptr<Handler> __Handler;
     };
 }
