@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.28.3)
 project(digital_twin)
 
+################################################################################
+# Set Initial Variables
+################################################################################
 set(TARGET app)
 set(CMAKE_CXX_STANDARD 23)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "Disable Assimp tests" FORCE)
@@ -15,27 +18,24 @@ set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "Disable SDL tests" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Disable SDL test library" FORCE)
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+################################################################################
+# Set Platform Specifics
+################################################################################
+if(WIN32)
+
+  add_compile_options(/Zc:preprocessor)
+
+elseif(UNIX)
+
+  if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic)
+  endif()
+
 endif()
 
-# Windows 11
-add_compile_options(/Zc:preprocessor)
-
-add_compile_definitions(IMGUI_ENABLE_FREETYPE)
-add_compile_definitions(HOST_BUILD)
-
-# https://github.com/microsoft/STL/issues/3063
-add_compile_definitions(_USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION=0)
-
-# https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
-add_compile_definitions(NOMINMAX)
-
-# warning C4996: 'std::atomic_compare_exchange_weak_explicit':
-# warning STL4029: std::atomic_*() overloads for shared_ptr are deprecated in C++20.
-# The shared_ptr specialization of std::atomic provides superior functionality.
-add_compile_definitions(_SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING)
-
+################################################################################
+# Download Vendors
+################################################################################
 include(FetchContent)
 
 FetchContent_Declare(SDL3
@@ -62,6 +62,9 @@ set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/imgui-src)
 set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
 set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/stb-src)
 
+################################################################################
+# Find Packages
+################################################################################
 find_package(OpenGL REQUIRED)
 find_package(pxr REQUIRED PATHS C:/pixi_ws/usd)
 find_package(ament_cmake REQUIRED)
@@ -70,6 +73,9 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(urdf REQUIRED)
 
+################################################################################
+# Add ImGUI Target
+################################################################################
 add_library(ImGUI STATIC 
   ${ImGUI_SOURCE_DIR}/imgui.cpp
   ${ImGUI_SOURCE_DIR}/imgui_demo.cpp
@@ -80,11 +86,16 @@ add_library(ImGUI STATIC
   ${ImGUI_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
   ${ImGUI_SOURCE_DIR}/misc/freetype/imgui_freetype.cpp)
 
-target_include_directories(ImGUI PUBLIC 
+target_include_directories(ImGUI PUBLIC
   ${SDL3_SOURCE_DIR}/include
   ${ImGUI_SOURCE_DIR}/backends
   ${ImGUI_SOURCE_DIR})
 
+target_compile_definitions(ImGUI PRIVATE IMGUI_ENABLE_FREETYPE)
+
+################################################################################
+# Add Main Target
+################################################################################
 add_executable(${TARGET}
   src/dt/app/application.cpp
   src/dt/app/application.h
@@ -111,11 +122,9 @@ add_executable(${TARGET}
   src/dt/utility.h
   src/main.cpp)
 
-target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
-
 target_include_directories(${TARGET} PRIVATE 
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${ImGUI_SOURCE_DIR}
   ${ImGUI_SOURCE_DIR}/backends
   ${PXR_INCLUDE_DIRS}
@@ -133,8 +142,39 @@ target_link_libraries(${TARGET}
   assimp
   ImGUI)
 
-install(TARGETS ${TARGET} DESTINATION lib/${PROJECT_NAME})
+# TODO: Not tested on Linux - add here for common definitions
+# target_compile_definitions(${TARGET} PRIVATE)
 
+if(WIN32)
+  target_compile_definitions(${TARGET} PRIVATE
+    # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
+    NOMINMAX
+
+    # error C1017: invalid integer constant expression
+    TBB_USE_DEBUG
+
+    # https://github.com/RenderKit/embree/issues/148
+    __TBB_NO_IMPLICIT_LINKAGE
+    __TBBMALLOC_NO_IMPLICIT_LINKAGE
+
+    # TRACKEDEXEC : TBB warning : tbb/task.h is deprecated.
+    # For details, please see Deprecated Features appendix in the TBB reference manual.
+    TBB_SUPPRESS_DEPRECATED_MESSAGES
+
+    # https://github.com/microsoft/STL/issues/3063
+    _USE_DETAILED_FUNCTION_NAME_IN_SOURCE_LOCATION=0
+
+    # warning C4996: 'std::atomic_compare_exchange_weak_explicit':
+    # warning STL4029: std::atomic_*() overloads for shared_ptr are deprecated in C++20.
+    # The shared_ptr specialization of std::atomic provides superior functionality.
+    _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING)
+endif()
+
+target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
+
+################################################################################
+# Do ROS2 Stuff
+################################################################################
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
