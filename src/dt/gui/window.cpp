@@ -37,8 +37,13 @@ dt::Window::Window()
 
     log::debug("Creating SDL3 window...");
 
+#ifdef _DEBUG
+	const char* windowTitle = "Digital Twin (Debug)";
+#else
+	const char* windowTitle = "Digital Twin (Release)";
+#endif
     constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-    _Window = SDL_CreateWindow("Digital Twin", 1280, 720, windowFlags);
+    _Window = SDL_CreateWindow(windowTitle, 1280, 720, windowFlags);
 
     if (_Window == nullptr)
         throw SDL_ERROR;
@@ -63,19 +68,21 @@ dt::Window::Window()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     // io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Bug
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	// FIXME: Windows specific
     io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\CascadiaCode.ttf)", 16.f);
+    io.IniFilename = R"(C:\pixi_ws\DigitalTwin\imgui.ini)";
 
     ImGuiStyle &style = ImGui::GetStyle();
     // Rounding
-    // style.ChildRounding = 0.f;
-    // style.FrameRounding = 0.f;
-    // style.GrabRounding = 0.f;
-    // style.PopupRounding = 0.f;
-    // style.ScrollbarRounding = 0.f;
-    // style.ScrollbarRounding = 0.f;
-    // style.TabRounding = 0.f;
-    // style.TreeLinesRounding = 0.f;
-    // style.WindowRounding = 0.f;
+    style.ChildRounding = 0.f;
+    style.FrameRounding = 0.f;
+    style.GrabRounding = 0.f;
+    style.PopupRounding = 0.f;
+    style.ScrollbarRounding = 0.f;
+    style.ScrollbarRounding = 0.f;
+    style.TabRounding = 0.f;
+    style.TreeLinesRounding = 0.f;
+    style.WindowRounding = 0.f;
     // Spacing
     // style.ColumnsMinSpacing = 6.f;
     // style.IndentSpacing = 21.f;

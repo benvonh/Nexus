@@ -66,12 +66,28 @@ set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/stb-src)
 # Find Packages
 ################################################################################
 find_package(OpenGL REQUIRED)
-find_package(pxr REQUIRED PATHS C:/pixi_ws/usd)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(urdf REQUIRED)
+
+if(WIN32)
+
+  find_package(pxr REQUIRED PATHS C:/pixi_ws/usd)
+  # TODO: Building USD from source is so complicated
+  #       - probably tackle this again in the future
+  # set(TBB_ROOT_DIR C:/pixi_ws/usd/src/tbb)
+  # set(OPENSUBDIV_ROOT_DIR C:/pixi_ws/usd/src/OpenSubdiv-3_6_0)
+  # add_subdirectory(C:/pixi_ws/OpenUSD C:/pixi_ws/usd-temp)
+  # set(PXR_LIBRARIES boost python arch tf gf pegtl js trace work plug vt ts ar kind sdf ndr sdr pcp usd usdGeom usdVol usdMedia usdShade usdLux usdProc usdRender usdHydra usdRi usdSemantics usdSkel usdUI usdUtils usdPhysics usdMtlx usdValidation usdGeomValidators usdShadeValidators usdSkelValidators usdUtilsValidators garch hf hio cameraUtil pxOsd geomUtil glf hgi hgiGL hgiInterop hd hdar hdGp hdsi hdMtlx hdSt hdx usdImaging usdImagingGL usdProcImaging usdRiPxrImaging usdSkelImaging usdVolImaging usdAppUtils usdviewq usdBakeMtlx)
+  # set(PXR_INCLUDE_DIRS C:/pixi_ws/usd/include)
+
+elseif(UNIX)
+
+  find_package(pxr REQUIRED)
+
+endif()
 
 ################################################################################
 # Add ImGUI Target
@@ -147,17 +163,17 @@ target_link_libraries(${TARGET}
 
 if(WIN32)
   target_compile_definitions(${TARGET} PRIVATE
+    # error C1017: invalid integer constant expression
+    $<$<CONFIG:Debug>:TBB_USE_DEBUG>
+
+    # https://github.com/RenderKit/embree/issues/148
+    $<$<CONFIG:Debug>:__TBB_NO_IMPLICIT_LINKAGE>
+    $<$<CONFIG:Debug>:__TBBMALLOC_NO_IMPLICIT_LINKAGE>
+
     # https://forum.aousd.org/t/issue-building-simple-app-using-usd-c-librairies/1761
     NOMINMAX
 
-    # error C1017: invalid integer constant expression
-    TBB_USE_DEBUG
-
-    # https://github.com/RenderKit/embree/issues/148
-    __TBB_NO_IMPLICIT_LINKAGE
-    __TBBMALLOC_NO_IMPLICIT_LINKAGE
-
-    # TRACKEDEXEC : TBB warning : tbb/task.h is deprecated.
+    # TRACKEDEXEC : TBB warning : tbb/task.h is deprecated
     # For details, please see Deprecated Features appendix in the TBB reference manual.
     TBB_SUPPRESS_DEPRECATED_MESSAGES
 

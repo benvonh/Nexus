@@ -46,5 +46,6 @@ namespace dt
 
         static inline std::mutex __Mutex;
         static inline pxr::UsdStageRefPtr __Stage = __DefaultStage();
+        // pxr::UsdStageRefPtr __Stage = __DefaultStage();
     };
 }

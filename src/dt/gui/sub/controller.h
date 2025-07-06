@@ -47,6 +47,6 @@ namespace dt
         static inline float __Sense = 10.f;
         static inline double __Yaw = 0.0;
         static inline double __Pitch = 90.0;
-        static inline pxr::GfCamera __Camera;
+        //static inline pxr::GfCamera __Camera;
     };
 }

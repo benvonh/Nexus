@@ -17,7 +17,7 @@ dt::Controller::Controller()
               /*float focusDistance*/ 0.f)
 {
     this->look(0, 0, 0); // Ensure camera is initialized to default angles
-    __Camera = _Camera;  // Yes, we re-initialize the static camera every time
+    //__Camera = _Camera;  // Yes, we re-initialize the static camera every time
 }
 
 /*============================================================================*/
@@ -107,7 +107,7 @@ void dt::Controller::draw()
         {
             _Yaw = __Yaw;
             _Pitch = __Pitch;
-            _Camera = __Camera;
+            //_Camera = __Camera;
         }
 
         // TODO: Better phrasing
@@ -115,7 +115,7 @@ void dt::Controller::draw()
         {
             __Yaw = _Yaw;
             __Pitch = _Pitch;
-            __Camera = _Camera;
+            //__Camera = _Camera;
         }
         ImGui::EndMenu();
     }
