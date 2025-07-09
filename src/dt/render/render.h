@@ -1,43 +1,42 @@
 #pragma once
 
-#include "dt/gui/sub/controller.h"
-#include "dt/gui/sub/parameter.h"
-#include "dt/gui/file_dialog.h"
+#include "dt/render/parameter.h"
+#include "dt/render/controller.h"
 
-#include "pxr/base/gf/vec2i.h"
 #include "pxr/usd/sdf/path.h"
+#include "pxr/base/gf/vec2i.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 
-#include <optional>
-#include <string>
 #include <vector>
+#include <string>
+#include <optional>
 
 namespace dt
 {
-    class Render : public Controller
+    class Render : public Controller, Parameter
     {
-        struct FileHandler : FileDialog::Handler
-        {
-            FileHandler(int, int);
+        // struct FileHandler : FileDialog::Handler
+        // {
+        //     FileHandler(int, int);
 
-            ~FileHandler() override = default;
+        //     ~FileHandler() override = default;
 
-            void invoke(const char *, int) override;
+        //     void invoke(const char *, int) override;
 
-            static constexpr int STRIDE = 3;
+        //     static constexpr int STRIDE = 3;
 
-            int Width = 0;
-            int Height = 0;
+        //     int Width = 0;
+        //     int Height = 0;
 
-            std::vector<u_char> Pixels;
-        };
+        //     std::vector<u_char> Pixels;
+        // };
 
     public:
         Render();
 
-        bool draw();
+        bool Draw();
 
-        void reset();
+        void Reset();
 
         void enable_free_camera();
 
@@ -53,8 +52,6 @@ namespace dt
         pxr::GfVec2i _Size = {1280, 720};
 
         std::optional<pxr::UsdImagingGLEngine> _Engine;
-
-        Parameter _Parameter;
 
         /**********************************************************
          * All render objects need the path to each camera in the *

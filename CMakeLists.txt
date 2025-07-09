@@ -112,31 +112,24 @@ target_compile_definitions(ImGUI PRIVATE IMGUI_ENABLE_FREETYPE)
 ################################################################################
 # Add Main Target
 ################################################################################
-add_executable(${TARGET}
+set(SOURCE
   src/dt/app/application.cpp
   src/dt/app/application.h
-  src/dt/gui/sub/controller.cpp
-  src/dt/gui/sub/controller.h
-  src/dt/gui/sub/parameter.cpp
-  src/dt/gui/sub/parameter.h
-  src/dt/gui/browser.cpp
-  src/dt/gui/browser.h
-  src/dt/gui/file_dialog.h
-  src/dt/gui/logs.cpp
-  src/dt/gui/logs.h
-  src/dt/gui/render.cpp
-  src/dt/gui/render.h
-  src/dt/gui/window.cpp
-  src/dt/gui/window.h
-  src/dt/usd/permit.h
-  src/dt/usd/robot.cpp
-  src/dt/usd/robot.h
-  src/dt/usd/world.cpp
-  src/dt/usd/world.h
+  src/dt/core/window.cpp
+  src/dt/core/window.h
+  src/dt/core/window_theme.cpp
+  src/dt/core/window_theme.h
+  src/dt/core/world.cpp
   src/dt/exception.h
   src/dt/logging.h
+  src/dt/render/controller.cpp
+  src/dt/render/parameter.cpp
+  src/dt/render/render.cpp
+  src/dt/types.h
   src/dt/utility.h
   src/main.cpp)
+
+add_executable(${TARGET} ${SOURCE})
 
 target_include_directories(${TARGET} PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -158,8 +151,7 @@ target_link_libraries(${TARGET}
   assimp
   ImGUI)
 
-# TODO: Not tested on Linux - add here for common definitions
-# target_compile_definitions(${TARGET} PRIVATE)
+target_compile_definitions(${TARGET} PRIVATE HOST_BUILD)
 
 if(WIN32)
   target_compile_definitions(${TARGET} PRIVATE
@@ -184,9 +176,15 @@ if(WIN32)
     # warning STL4029: std::atomic_*() overloads for shared_ptr are deprecated in C++20.
     # The shared_ptr specialization of std::atomic provides superior functionality.
     _SILENCE_CXX20_OLD_SHARED_PTR_ATOMIC_SUPPORT_DEPRECATION_WARNING)
+
+  # For Visual Studio to organize files with the same structure as the source tree
+  source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCE})
 endif()
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
+
+# TODO: Debating whether to use precompiled headers
+# target_precompile_headers(${TARGET} PRIVATE dt/pch.h)
 
 ################################################################################
 # Do ROS2 Stuff

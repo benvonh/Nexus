@@ -97,8 +97,8 @@ namespace dt
                 switch (entry.Type)
                 {
                 case Type::Debug:
-                    //NOTE: Black on Windows terminal
-                    //std::cout << termcolor::grey;
+                    // NOTE: Black on Windows terminal
+                    // std::cout << termcolor::grey;
                     std::cout << termcolor::bright_grey;
                     break;
                 case Type::Event:
@@ -224,10 +224,6 @@ namespace dt
 
         log() = delete;
         ~log() = delete;
-        log(log &&) = delete;
-        log(const log &) = delete;
-        log &operator=(log &&) = delete;
-        log &operator=(const log &) = delete;
 
         static inline Buffer<100> Data;
 

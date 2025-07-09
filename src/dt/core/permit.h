@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dt/utility.h"
+#include "dt/types.h"
 
 #include "pxr/usd/usd/stage.h"
 #include "pxr/usd/usdGeom/xformOp.h"

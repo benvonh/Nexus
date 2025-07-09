@@ -1,8 +1,16 @@
 #include "controller.h"
+
+#include "pxr/base/gf/vec3d.h"
+#include "pxr/base/gf/vec4f.h"
+#include "pxr/base/gf/range1f.h"
+#include "pxr/base/gf/matrix3d.h"
+#include "pxr/base/gf/matrix4d.h"
+#include "pxr/base/gf/rotation.h"
+
 #include "imgui.h"
+
 #include <algorithm>
 
-/*============================================================================*/
 dt::Controller::Controller()
     : _Camera(/*const GfMatrix4d &transform*/ pxr::GfMatrix4d(1),
               /*Projection projection*/ pxr::GfCamera::Projection::Perspective,
@@ -16,13 +24,18 @@ dt::Controller::Controller()
               /*float fStop*/ 8.f * 0.01,
               /*float focusDistance*/ 0.f)
 {
-    this->look(0, 0, 0); // Ensure camera is initialized to default angles
-    //__Camera = _Camera;  // Yes, we re-initialize the static camera every time
+    this->Look(0, 0, 0);
 }
 
-/*============================================================================*/
+template void dt::Controller::Move<dt::Controller::Direction::FORWARD>(const float);
+template void dt::Controller::Move<dt::Controller::Direction::BACKWARD>(const float);
+template void dt::Controller::Move<dt::Controller::Direction::LEFT>(const float);
+template void dt::Controller::Move<dt::Controller::Direction::RIGHT>(const float);
+template void dt::Controller::Move<dt::Controller::Direction::UP>(const float);
+template void dt::Controller::Move<dt::Controller::Direction::DOWN>(const float);
+
 template <dt::Controller::Direction D>
-void dt::Controller::move(const float dt)
+void dt::Controller::Move(const float dt)
 {
     pxr::GfVec3d translate(0);
     pxr::GfMatrix4d transform = _Camera.GetTransform();
@@ -58,15 +71,7 @@ void dt::Controller::move(const float dt)
     _Camera.SetTransform(transform);
 }
 
-template void dt::Controller::move<dt::Controller::Direction::FORWARD>(const float);
-template void dt::Controller::move<dt::Controller::Direction::BACKWARD>(const float);
-template void dt::Controller::move<dt::Controller::Direction::LEFT>(const float);
-template void dt::Controller::move<dt::Controller::Direction::RIGHT>(const float);
-template void dt::Controller::move<dt::Controller::Direction::UP>(const float);
-template void dt::Controller::move<dt::Controller::Direction::DOWN>(const float);
-
-/*============================================================================*/
-void dt::Controller::look(const float dx, const float dy, const float dt)
+void dt::Controller::Look(const float dx, const float dy, const float dt)
 {
     const double q = __Sense * -dt;
 
@@ -87,43 +92,15 @@ void dt::Controller::look(const float dx, const float dy, const float dt)
     _Camera.SetTransform(transform);
 }
 
-/*============================================================================*/
 void dt::Controller::Draw()
 {
     ImGui::Begin("Controller");
-    ImGui::Text("Yaw: %.1f", __Yaw);
-    ImGui::Text("Pitch: %.1f", __Pitch);
     ImGui::InputFloat("Speed", &__Speed, 1.f, 20.f, "%.0f");
     ImGui::InputFloat("Sensitivity", &__Sense, 1.f, 20.f, "%.0f");
     ImGui::End();
 }
 
-/*============================================================================*/
-void dt::Controller::draw()
-{
-    if (ImGui::BeginMenu("Camera Controller"))
-    {
-        if (ImGui::Button("Set Camera from Global"))
-        {
-            _Yaw = __Yaw;
-            _Pitch = __Pitch;
-            //_Camera = __Camera;
-        }
-
-        // TODO: Better phrasing
-        if (ImGui::Button("Set Global Camera to This"))
-        {
-            __Yaw = _Yaw;
-            __Pitch = _Pitch;
-            //__Camera = _Camera;
-        }
-        ImGui::EndMenu();
-    }
-    ImGui::Text("Yaw: %.1f | Pitch: %.1f", _Yaw, _Pitch);
-}
-
-/*============================================================================*/
-void dt::Controller::transform_from(const pxr::GfCamera &camera)
+void dt::Controller::__transform_from(const pxr::GfCamera &camera)
 {
     pxr::GfMatrix4d transform = camera.GetTransform();
     pxr::GfVec3d rpy = transform.DecomposeRotation(pxr::GfVec3d(0, 0, 1),

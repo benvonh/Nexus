@@ -1,4 +1,3 @@
-#pragma once
 
 #include "dt/gui/browser.h"
 #include "dt/gui/logs.h"

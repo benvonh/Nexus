@@ -13,11 +13,11 @@
                 "${workspaceFolder}/build/_deps/stb-src",
                 "${workspaceFolder}/build/_deps/termcolor-src/include/termcolor",
                 "${workspaceFolder}/src",
-                "C:\\pixi_ws\\.pixi\\envs\\default\\include",
+                "C:\\pixi_ws\\.pixi\\envs\\default\\include"
             ],
             "defines": [
-                "_DEBUG",
                 "UNICODE",
+                "_DEBUG",
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.26100.0",

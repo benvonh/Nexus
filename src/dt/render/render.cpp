@@ -1,8 +1,8 @@
 #include "render.h"
 
-#include "dt/usd/world.h"
-#include "dt/exception.h"
 #include "dt/logging.h"
+#include "dt/exception.h"
+#include "dt/core/world.h"
 
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usd/primRange.h"
@@ -18,8 +18,7 @@
 #include <format>
 #include <memory>
 
-/*============================================================================*/
-static std::string generate_name()
+std::string generate_name()
 {
     static unsigned calls = 0;
 
@@ -33,70 +32,62 @@ static std::string generate_name()
     return name;
 }
 
-/*============================================================================*/
-static const char *get_path(void *user_data, int idx)
-{
-    const auto *paths = (pxr::SdfPath *)(user_data);
-    return paths[idx].GetText();
-}
+// dt::Render::FileHandler::FileHandler(int w, int h)
+//     : Width(w), Height(h), Pixels(w * h * 3) {}
 
-/*============================================================================*/
-dt::Render::FileHandler::FileHandler(int w, int h)
-    : Width(w), Height(h), Pixels(w * h * 3) {}
+// /*============================================================================*/
+// void dt::Render::FileHandler::invoke(const char *path, int extension)
+// {
+//     auto f = std::format("{}.{}", path, FileDialog::IMAGE_FILTER[extension].pattern);
 
-/*============================================================================*/
-void dt::Render::FileHandler::invoke(const char *path, int extension)
-{
-    auto f = std::format("{}.{}", path, FileDialog::IMAGE_FILTER[extension].pattern);
+//     log::event("Saving render ({}x{}) as image at '{}'", Width, Height, f);
 
-    log::event("Saving render ({}x{}) as image at '{}'", Width, Height, f);
+//     stbi_flip_vertically_on_write(1);
 
-    stbi_flip_vertically_on_write(1);
+//     switch (extension)
+//     {
+//     case FileDialog::ImageFormat::PNG:
+//         if (!stbi_write_png(f.c_str(), Width, Height, STRIDE, Pixels.data(), Width * STRIDE))
+//             log::error("Error saving as PNG");
+//         break;
+//     case FileDialog::ImageFormat::BMP:
+//         if (!stbi_write_bmp(f.c_str(), Width, Height, STRIDE, Pixels.data()))
+//             log::error("Error saving as BMP");
+//         break;
+//     case FileDialog::ImageFormat::TGA:
+//         if (!stbi_write_tga(f.c_str(), Width, Height, STRIDE, Pixels.data()))
+//             log::error("Error saving as TGA");
+//         break;
+//     case FileDialog::ImageFormat::JPG:
+//         if (!stbi_write_jpg(f.c_str(), Width, Height, STRIDE, Pixels.data(), 100))
+//             log::error("Error saving as JPG");
+//         break;
+//     case FileDialog::ImageFormat::HDR:
+//         log::alert("HDR image format is not supported yet, saving as HDR is disabled.");
+//         // TODO: Casting char to float is not a good idea
+//         // if (!stbi_write_hdr(f.c_str(), Width, Height, STRIDE, reinterpret_cast<float *>(Pixels.data())));
+//         //     log::error("Error saving as HDR");
+//         break;
+//     default:
+//         log::error("Unknown image format, got {}", extension);
+//     }
+// }
 
-    switch (extension)
-    {
-    case FileDialog::ImageFormat::PNG:
-        if (!stbi_write_png(f.c_str(), Width, Height, STRIDE, Pixels.data(), Width * STRIDE))
-            log::error("Error saving as PNG");
-        break;
-    case FileDialog::ImageFormat::BMP:
-        if (!stbi_write_bmp(f.c_str(), Width, Height, STRIDE, Pixels.data()))
-            log::error("Error saving as BMP");
-        break;
-    case FileDialog::ImageFormat::TGA:
-        if (!stbi_write_tga(f.c_str(), Width, Height, STRIDE, Pixels.data()))
-            log::error("Error saving as TGA");
-        break;
-    case FileDialog::ImageFormat::JPG:
-        if (!stbi_write_jpg(f.c_str(), Width, Height, STRIDE, Pixels.data(), 100))
-            log::error("Error saving as JPG");
-        break;
-    case FileDialog::ImageFormat::HDR:
-        log::alert("HDR image format is not supported yet, saving as HDR is disabled.");
-        // TODO: Casting char to float is not a good idea
-        // if (!stbi_write_hdr(f.c_str(), Width, Height, STRIDE, reinterpret_cast<float *>(Pixels.data())));
-        //     log::error("Error saving as HDR");
-        break;
-    default:
-        log::error("Unknown image format, got {}", extension);
-    }
-}
-
-/*============================================================================*/
 dt::Render::Render() : _NAME(generate_name())
 {
     log::debug("Instantiated render object with name '{}'", _NAME);
+    this->Reset();
 }
 
-/*============================================================================*/
-bool dt::Render::draw()
+bool dt::Render::Draw()
 {
     bool clicked = false;
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2());
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{});
 
     if (ImGui::Begin(_NAME.c_str(), nullptr, ImGuiWindowFlags_MenuBar))
     {
+        ImGui::PopStyleVar();
 
         /*****************
          * SHOW MENU BAR *
@@ -107,28 +98,36 @@ bool dt::Render::draw()
             {
                 if (ImGui::MenuItem("Save render as image"))
                 {
-                    auto handler = NewPtr<FileHandler>(_Size[0], _Size[1]);
-                    glBindTexture(GL_TEXTURE_2D, __get_texture());
-                    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-                    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
-                    glBindTexture(GL_TEXTURE_2D, 0);
-                    FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
+                    // auto handler = NewPtr<FileHandler>(_Size[0], _Size[1]);
+                    // glBindTexture(GL_TEXTURE_2D, __get_texture());
+                    // glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                    // glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
+                    // glBindTexture(GL_TEXTURE_2D, 0);
+                    // FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
                 }
+
                 if (ImGui::InputInt2("Resolution", &_Size[0]))
                 {
                     const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
                     _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
                     _Engine->SetRenderBufferSize(_Size);
                 }
+
+                auto get_path = [](void *user_data, int idx) -> const char *
+                {
+                    const auto *paths = (pxr::SdfPath *)(user_data);
+                    return paths[idx].GetText();
+                };
+
                 if (ImGui::Combo("Camera Path", &_Path_index, get_path, (void *)__Paths, __Cached_paths))
                 {
                     _Free_camera = false;
                 }
+
                 ImGui::Checkbox("Free Camera", &_Free_camera);
                 ImGui::EndMenu();
             }
-            _Parameter.draw();
-            Controller::draw();
+            __draw_render_parameter();
             ImGui::EndMenuBar();
         }
 
@@ -137,7 +136,7 @@ bool dt::Render::draw()
          ****************/
         if (_Free_camera || _Path_index >= __Cached_paths)
         {
-            const pxr::GfFrustum f = Controller::get_frustum();
+            const pxr::GfFrustum f = _Camera.GetFrustum();
             _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
         }
         else
@@ -146,7 +145,7 @@ bool dt::Render::draw()
         }
         {
             auto [stage, _] = World::GetStagePermit();
-            _Engine->Render(stage->GetPseudoRoot(), _Parameter.get_params());
+            _Engine->Render(stage->GetPseudoRoot(), _Params);
         }
 
         /******************
@@ -194,13 +193,15 @@ bool dt::Render::draw()
 
         clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
     }
+    else
+    {
+        ImGui::PopStyleVar();
+    }
     ImGui::End();
-    ImGui::PopStyleVar();
     return clicked;
 }
 
-/*============================================================================*/
-void dt::Render::reset()
+void dt::Render::Reset()
 {
     _Engine.emplace();
 
@@ -213,19 +214,17 @@ void dt::Render::reset()
     _Engine->SetEnablePresentation(false);
 }
 
-/*============================================================================*/
 void dt::Render::enable_free_camera()
 {
     if (!_Free_camera)
     {
         auto [stage, _] = World::GetStagePermit();
         pxr::UsdGeomCamera c(stage->GetPrimAtPath(__Paths[_Path_index]));
-        Controller::transform_from(c.GetCamera(_Parameter.get_params().frame));
+        __transform_from(c.GetCamera(_Params.frame));
     }
     _Free_camera = true;
 }
 
-/*============================================================================*/
 unsigned dt::Render::__get_texture()
 {
     const auto handle = _Engine->GetAovTexture(pxr::HdAovTokens->color);
@@ -244,7 +243,6 @@ unsigned dt::Render::__get_texture()
     return texture->GetTextureId();
 }
 
-/*============================================================================*/
 void dt::Render::CachePaths()
 {
     static bool logMaxHit = false;

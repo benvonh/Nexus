@@ -1,4 +1,5 @@
 #include "dt/app/application.h"
+#include "dt/exception.h"
 #include "dt/logging.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -6,27 +7,26 @@
 
 int main(int argc, char *argv[])
 {
-    std::cout << '\n';
-    std::cout << "+--------------+\n";
-    std::cout << "| Digital Twin |\n";
-    std::cout << "+--------------+\n";
+    dt::log::debug("Welcome to Digital Twin v?");
 
-    dt::log::debug("Digital Twin v?");
+#ifdef _DEBUG
+    dt::Application app(argc, argv);
 
+    app.MainLoop();
+#else
     try
     {
         dt::Application app(argc, argv);
 
-        app.main_loop();
+        app.MainLoop();
     }
     catch (const std::exception &e)
     {
-        dt::log::error("Uh-oh... Something went wrong!");
+        dt::log::error("An exception of type <{}> was thrown!", typeid(e).name());
 
-        std::cerr << "\n  From exception of typename <";
-        std::cerr << typeid(e).name() << ">, \n\n";
-        std::cerr << "    " << e.what() << '\n';
+        std::cerr << "\n    " << e.what() << "\n\n";
     }
+#endif
 
-    std::cout << "\nDone\n";
+    dt::log::debug("Done");
 }

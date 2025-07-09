@@ -1,6 +1,6 @@
 #pragma once
 
-#include "dt/usd/permit.h"
+#include "dt/core/permit.h"
 
 #include "pxr/usd/usd/stage.h"
 
@@ -46,6 +46,5 @@ namespace dt
 
         static inline std::mutex __Mutex;
         static inline pxr::UsdStageRefPtr __Stage = __DefaultStage();
-        // pxr::UsdStageRefPtr __Stage = __DefaultStage();
     };
 }
