@@ -13,8 +13,7 @@ namespace dt
     {
         if (ImGui::Begin("Scene Hierarchy"))
         {
-            // Assumes the depth of the scene graph is less than 64.
-            size_t treeDepth = 0;
+            uint8_t treeDepth = 0;
             uint64_t treeStack = 0;
 
             auto [stage, _] = World::GetStagePermit();

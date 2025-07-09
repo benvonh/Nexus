@@ -24,18 +24,15 @@ namespace dt
 
         void Look(const float dx, const float dy, const float dt);
 
-        static void Draw();
+        void TransformFrom(const pxr::GfCamera &camera);
 
-    protected:
-        void __transform_from(const pxr::GfCamera &camera);
+        double yaw = 0.0;
+        double pitch = 90.0;
 
-        double _Yaw = 0.0;
-        double _Pitch = 90.0;
+        pxr::GfCamera camera;
 
-        pxr::GfCamera _Camera;
+        static inline float Speed = 5.f;
+        static inline float Sense = 10.f;
 
-    private:
-        static inline float __Speed = 5.f;
-        static inline float __Sense = 10.f;
     };
 }

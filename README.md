@@ -99,6 +99,6 @@ code DigitalTwin # Visual Studio Code
 
 ## Roadmap
 
-1. 3D Reconstuction and Map Survey
-2. VR Compatiblity
-3. Medical Research
+- Implement live editing of properties and prims
+- Switch to more advanced rendering like https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
+- Investigate how to do VR imaging

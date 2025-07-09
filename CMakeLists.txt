@@ -123,9 +123,9 @@ set(SOURCE
   src/dt/exception.h
   src/dt/logging.h
   src/dt/render/controller.cpp
-  src/dt/render/parameter.cpp
   src/dt/render/render.cpp
   src/dt/types.h
+  src/dt/ui/usd_viewport.cpp
   src/dt/utility.h
   src/main.cpp)
 

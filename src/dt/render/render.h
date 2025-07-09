@@ -1,72 +1,41 @@
 #pragma once
 
-#include "dt/render/parameter.h"
 #include "dt/render/controller.h"
+#include "dt/render/parameter.h"
 
-#include "pxr/usd/sdf/path.h"
 #include "pxr/base/gf/vec2i.h"
+#include "pxr/usd/sdf/path.h"
 #include "pxr/usdImaging/usdImagingGL/engine.h"
 
-#include <vector>
 #include <string>
 #include <optional>
 
 namespace dt
 {
-    class Render : public Controller, Parameter
+    class Render : public Controller, public Parameter
     {
-        // struct FileHandler : FileDialog::Handler
-        // {
-        //     FileHandler(int, int);
-
-        //     ~FileHandler() override = default;
-
-        //     void invoke(const char *, int) override;
-
-        //     static constexpr int STRIDE = 3;
-
-        //     int Width = 0;
-        //     int Height = 0;
-
-        //     std::vector<u_char> Pixels;
-        // };
-
     public:
-        Render();
+        [[nodiscard]]
+        unsigned operator()();
 
-        bool Draw();
+        [[nodiscard]]
+        unsigned operator()(const pxr::SdfPath &path);
 
         void Reset();
 
-        void enable_free_camera();
+        void UpdateSize();
+
+        void EnableFreeCamera(const pxr::SdfPath &path);
+
+        void DisableFreeCamera();
+
+        bool free_camera = true;
+
+        pxr::GfVec2i size = {1280, 720};
 
     private:
         unsigned __get_texture();
 
-        const std::string _NAME;
-
-        int _Path_index = 0;
-
-        bool _Free_camera = true;
-
-        pxr::GfVec2i _Size = {1280, 720};
-
         std::optional<pxr::UsdImagingGLEngine> _Engine;
-
-        /**********************************************************
-         * All render objects need the path to each camera in the *
-         * scene graph which means traversing the stage on every  *
-         * update. We cache these paths for effieciency in static *
-         * storage.                                               *
-         **********************************************************/
-    public:
-        static void CachePaths();
-
-    private:
-        static constexpr size_t __CACHE_SIZE = 2;
-
-        static inline size_t __Cached_paths = 0;
-
-        static inline pxr::SdfPath __Paths[__CACHE_SIZE];
     };
 }

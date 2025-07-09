@@ -1,12 +1,13 @@
 #include "application.h"
 
 // #include "dt/core/event.h"
-#include "dt/logging.h"
-#include "dt/exception.h"
 #include "dt/core/window.h"
+#include "dt/exception.h"
+#include "dt/logging.h"
 #include "dt/render/render.h"
-#include "dt/ui/log_output.h"
+#include "dt/ui/log_history.h"
 #include "dt/ui/scene_hierarchy.h"
+#include "dt/ui/usd_viewport.h"
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -28,7 +29,7 @@ void dt::Application::SpinThread()
 void dt::Application::MainLoop()
 {
     Window window;
-    Render render;
+    USD_Viewport viewports;
 
     while (window)
     {
@@ -36,13 +37,44 @@ void dt::Application::MainLoop()
         {
             window.StartFrame();
 
-            draw_log_output();
+            draw_log_history();
             draw_scene_hierarchy();
 
-            Parameter::Draw();
-            Controller::Draw();
+            // if (ImGui::BeginMainMenuBar())
+            // {
+            //     if (ImGui::BeginMenu("Render Viewort"))
+            //     {
+            //         ImGui::Text("Viewports: %d/%d", renderCount, sizeof(render));
 
-            render.Draw();
+            //         if (ImGui::Button("Add Render Viewport"))
+            //         {
+            //             if (renderCount < sizeof(render))
+            //             {
+            //                 renderCount++;
+            //                 render[renderCount - 1].Reset();
+            //             }
+            //         }
+            //         if (ImGui::Button("Remove Render Viewport"))
+            //         {
+            //             if (renderCount > 1)
+            //             {
+            //                 renderCount--;
+            //             }
+            //         }
+            //         ImGui::EndMenu();
+            //     }
+            //     ImGui::EndMainMenuBar();
+            // }
+
+            // for (int i = 0; i < renderCount; ++i)
+            // {
+            //     render[i].Draw();
+                    // _Render_active = i;
+                    // _Renders[i].enable_free_camera();
+                    // SDL_SetWindowRelativeMouseMode(_Window, true);
+                    // io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            // }
+            viewports.Draw();
 
             window.FinishFrame();
             window.HandleEvents();

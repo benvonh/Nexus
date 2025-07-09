@@ -1,11 +1,10 @@
 #pragma once
 
 #include "dt/exception.h"
+#include "dt/render/render.h"
 
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_opengl.h"
-
-#include <functional>
 
 namespace dt
 {
@@ -28,6 +27,9 @@ namespace dt
         void FinishFrame();
 
         void HandleEvents();
+
+        [[nodiscard]]
+        bool ControlRender(Render &);
 
     private:
         void __create_layer();

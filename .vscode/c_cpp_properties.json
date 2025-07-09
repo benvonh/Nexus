@@ -3,8 +3,6 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/../ros2-windows/include",
-                "${workspaceFolder}/../usd/include",
                 "${workspaceFolder}/build/_deps/assimp-build/include",
                 "${workspaceFolder}/build/_deps/assimp-src/include",
                 "${workspaceFolder}/build/_deps/imgui-src",
@@ -13,7 +11,9 @@
                 "${workspaceFolder}/build/_deps/stb-src",
                 "${workspaceFolder}/build/_deps/termcolor-src/include/termcolor",
                 "${workspaceFolder}/src",
-                "C:\\pixi_ws\\.pixi\\envs\\default\\include"
+                "C:\\pixi_ws\\.pixi\\envs\\default\\include",
+                "C:\\pixi_ws\\ros2-windows\\include\\**",
+                "C:\\pixi_ws\\usd\\include"
             ],
             "defines": [
                 "UNICODE",

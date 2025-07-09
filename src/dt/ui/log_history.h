@@ -6,9 +6,9 @@
 
 namespace dt
 {
-    void draw_log_output()
+    void draw_log_history()
     {
-        if (ImGui::Begin("Log Output"))
+        if (ImGui::Begin("Log History"))
         {
             for (const auto &[type, message] : log::Data)
             {

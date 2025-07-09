@@ -125,10 +125,58 @@ void dt::Window::HandleEvents()
     }
 }
 
+bool dt::Window::ControlRender(Render &render)
+{
+    ImGuiIO &io = ImGui::GetIO();
+
+    float x, y;
+    const SDL_MouseButtonFlags state = SDL_GetRelativeMouseState(&x, &y);
+    render.Look(x, y, io.DeltaTime);
+
+    const bool *keyboard = SDL_GetKeyboardState(nullptr);
+
+    if (keyboard[SDL_SCANCODE_W])
+    {
+        render.Move<Controller::Direction::FORWARD>(io.DeltaTime);
+    }
+    if (keyboard[SDL_SCANCODE_A])
+    {
+        render.Move<Controller::Direction::LEFT>(io.DeltaTime);
+    }
+    // if (keyboard[SDL_SCANCODE_S])
+    if (keyboard[SDL_SCANCODE_R])
+    {
+        render.Move<Controller::Direction::BACKWARD>(io.DeltaTime);
+    }
+    // if (keyboard[SDL_SCANCODE_D])
+    if (keyboard[SDL_SCANCODE_R])
+    {
+        render.Move<Controller::Direction::RIGHT>(io.DeltaTime);
+    }
+    if (keyboard[SDL_SCANCODE_SPACE])
+    {
+        render.Move<Controller::Direction::UP>(io.DeltaTime);
+    }
+    if (keyboard[SDL_SCANCODE_LSHIFT])
+    {
+        render.Move<Controller::Direction::DOWN>(io.DeltaTime);
+    }
+    if (keyboard[SDL_SCANCODE_ESCAPE])
+    {
+        const float mouseX = io.DisplaySize.x / 2;
+        const float mouseY = io.DisplaySize.y / 2;
+        SDL_WarpMouseInWindow(_Window, mouseX, mouseY);
+        SDL_SetWindowRelativeMouseMode(_Window, false);
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        return false;
+    }
+    return true;
+}
+
 void dt::Window::__create_layer()
 {
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext(); // TODO: Doc for DLL here
+    ImGui::CreateContext();
     IMGUI_INVOKE(ImGui_ImplOpenGL3_Init("#version 460 core"));
     IMGUI_INVOKE(ImGui_ImplSDL3_InitForOpenGL(_Window, _Context));
 

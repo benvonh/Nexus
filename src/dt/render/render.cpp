@@ -1,204 +1,41 @@
 #include "render.h"
 
-#include "dt/logging.h"
-#include "dt/exception.h"
 #include "dt/core/world.h"
+#include "dt/exception.h"
+#include "dt/logging.h"
 
-#include "pxr/usd/usd/prim.h"
-#include "pxr/usd/usd/primRange.h"
-#include "pxr/usd/usdGeom/camera.h"
+#include "pxr/base/gf/rect2i.h"
+#include "pxr/base/gf/vec2i.h"
 #include "pxr/imaging/hgiGL/texture.h"
+#include "pxr/usd/usd/prim.h"
+#include "pxr/usd/usdGeom/camera.h"
 
+// TODO
 #include "SDL3/SDL_opengl.h"
 
+// TODO
 #include "stb_image_write.h"
 
-#include "imgui.h"
-
-#include <format>
-#include <memory>
-
-std::string generate_name()
+unsigned dt::Render::operator()()
 {
-    static unsigned calls = 0;
+    const pxr::GfFrustum f = this->camera.GetFrustum();
 
-    std::string name;
-
-    if (calls++ > 0)
-        name = std::format("USD Viewport (#{})", calls);
-    else
-        name = "USD Viewport";
-
-    return name;
+    _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
+    {
+        auto [stage, _] = World::GetStagePermit();
+        _Engine->Render(stage->GetPseudoRoot(), this->params);
+    }
+    return __get_texture();
 }
 
-// dt::Render::FileHandler::FileHandler(int w, int h)
-//     : Width(w), Height(h), Pixels(w * h * 3) {}
-
-// /*============================================================================*/
-// void dt::Render::FileHandler::invoke(const char *path, int extension)
-// {
-//     auto f = std::format("{}.{}", path, FileDialog::IMAGE_FILTER[extension].pattern);
-
-//     log::event("Saving render ({}x{}) as image at '{}'", Width, Height, f);
-
-//     stbi_flip_vertically_on_write(1);
-
-//     switch (extension)
-//     {
-//     case FileDialog::ImageFormat::PNG:
-//         if (!stbi_write_png(f.c_str(), Width, Height, STRIDE, Pixels.data(), Width * STRIDE))
-//             log::error("Error saving as PNG");
-//         break;
-//     case FileDialog::ImageFormat::BMP:
-//         if (!stbi_write_bmp(f.c_str(), Width, Height, STRIDE, Pixels.data()))
-//             log::error("Error saving as BMP");
-//         break;
-//     case FileDialog::ImageFormat::TGA:
-//         if (!stbi_write_tga(f.c_str(), Width, Height, STRIDE, Pixels.data()))
-//             log::error("Error saving as TGA");
-//         break;
-//     case FileDialog::ImageFormat::JPG:
-//         if (!stbi_write_jpg(f.c_str(), Width, Height, STRIDE, Pixels.data(), 100))
-//             log::error("Error saving as JPG");
-//         break;
-//     case FileDialog::ImageFormat::HDR:
-//         log::alert("HDR image format is not supported yet, saving as HDR is disabled.");
-//         // TODO: Casting char to float is not a good idea
-//         // if (!stbi_write_hdr(f.c_str(), Width, Height, STRIDE, reinterpret_cast<float *>(Pixels.data())));
-//         //     log::error("Error saving as HDR");
-//         break;
-//     default:
-//         log::error("Unknown image format, got {}", extension);
-//     }
-// }
-
-dt::Render::Render() : _NAME(generate_name())
+unsigned dt::Render::operator()(const pxr::SdfPath &path)
 {
-    log::debug("Instantiated render object with name '{}'", _NAME);
-    this->Reset();
-}
-
-bool dt::Render::Draw()
-{
-    bool clicked = false;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{});
-
-    if (ImGui::Begin(_NAME.c_str(), nullptr, ImGuiWindowFlags_MenuBar))
+    _Engine->SetCameraPath(path);
     {
-        ImGui::PopStyleVar();
-
-        /*****************
-         * SHOW MENU BAR *
-         *****************/
-        if (ImGui::BeginMenuBar())
-        {
-            if (ImGui::BeginMenu("Options"))
-            {
-                if (ImGui::MenuItem("Save render as image"))
-                {
-                    // auto handler = NewPtr<FileHandler>(_Size[0], _Size[1]);
-                    // glBindTexture(GL_TEXTURE_2D, __get_texture());
-                    // glPixelStorei(GL_PACK_ALIGNMENT, 1);
-                    // glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
-                    // glBindTexture(GL_TEXTURE_2D, 0);
-                    // FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGE_FILTER);
-                }
-
-                if (ImGui::InputInt2("Resolution", &_Size[0]))
-                {
-                    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
-                    _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-                    _Engine->SetRenderBufferSize(_Size);
-                }
-
-                auto get_path = [](void *user_data, int idx) -> const char *
-                {
-                    const auto *paths = (pxr::SdfPath *)(user_data);
-                    return paths[idx].GetText();
-                };
-
-                if (ImGui::Combo("Camera Path", &_Path_index, get_path, (void *)__Paths, __Cached_paths))
-                {
-                    _Free_camera = false;
-                }
-
-                ImGui::Checkbox("Free Camera", &_Free_camera);
-                ImGui::EndMenu();
-            }
-            __draw_render_parameter();
-            ImGui::EndMenuBar();
-        }
-
-        /****************
-         * RENDER SCENE *
-         ****************/
-        if (_Free_camera || _Path_index >= __Cached_paths)
-        {
-            const pxr::GfFrustum f = _Camera.GetFrustum();
-            _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
-        }
-        else
-        {
-            _Engine->SetCameraPath(__Paths[_Path_index]);
-        }
-        {
-            auto [stage, _] = World::GetStagePermit();
-            _Engine->Render(stage->GetPseudoRoot(), _Params);
-        }
-
-        /******************
-         * DISPLAY RENDER *
-         ******************/
-        ImVec2 size(_Size[0], _Size[1]);
-        ImVec2 space = ImGui::GetContentRegionAvail();
-        ImVec2 offset = ImGui::GetCursorPos();
-
-        switch ((size.y > space.y) << 1 | (size.x > space.x))
-        {
-        case 0b00:
-            offset.x += (space.x - size.x) / 2;
-            offset.y += (space.y - size.y) / 2;
-            break;
-        case 0b01:
-            size.x = space.x;
-            size.y *= space.x / size.x;
-            offset.y += (space.y - size.y) / 2;
-            break;
-        case 0b10:
-            size.y = space.y;
-            size.x *= space.y / size.y;
-            offset.x += (space.x - size.x) / 2;
-            break;
-        case 0b11:
-            float Sx = space.x / size.x;
-            float Sy = space.y / size.y;
-            if (Sx < Sy)
-            {
-                size.x = space.x;
-                size.y *= Sx;
-                offset.y += (space.y - size.y) / 2;
-            }
-            else
-            {
-                size.y = space.y;
-                size.x *= Sy;
-                offset.x += (space.x - size.x) / 2;
-            }
-            break;
-        }
-        ImGui::SetCursorPos(offset);
-        ImGui::Image(__get_texture(), size, ImVec2(0, 1), ImVec2(1, 0));
-
-        clicked = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
+        auto [stage, _] = World::GetStagePermit();
+        _Engine->Render(stage->GetPseudoRoot(), this->params);
     }
-    else
-    {
-        ImGui::PopStyleVar();
-    }
-    ImGui::End();
-    return clicked;
+    return __get_texture();
 }
 
 void dt::Render::Reset()
@@ -208,21 +45,33 @@ void dt::Render::Reset()
     if (!_Engine->SetRendererAov(pxr::HdAovTokens->color))
         throw exception("Error setting AOV to color");
 
-    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), _Size);
+    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
     _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-    _Engine->SetRenderBufferSize(_Size);
+    _Engine->SetRenderBufferSize(this->size);
     _Engine->SetEnablePresentation(false);
 }
 
-void dt::Render::enable_free_camera()
+void dt::Render::UpdateSize()
 {
-    if (!_Free_camera)
+    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
+    _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
+    _Engine->SetRenderBufferSize(this->size);
+}
+
+void dt::Render::EnableFreeCamera(const pxr::SdfPath &path)
+{
+    if (!this->free_camera)
     {
         auto [stage, _] = World::GetStagePermit();
-        pxr::UsdGeomCamera c(stage->GetPrimAtPath(__Paths[_Path_index]));
-        __transform_from(c.GetCamera(_Params.frame));
+        pxr::UsdGeomCamera cam(stage->GetPrimAtPath(path));
+        this->TransformFrom(cam.GetCamera(this->params.frame));
     }
-    _Free_camera = true;
+    this->free_camera = true;
+}
+
+void dt::Render::DisableFreeCamera()
+{
+    this->free_camera = false;
 }
 
 unsigned dt::Render::__get_texture()
@@ -241,41 +90,4 @@ unsigned dt::Render::__get_texture()
         throw exception("OpenGL texture is invalid");
 
     return texture->GetTextureId();
-}
-
-void dt::Render::CachePaths()
-{
-    static bool logMaxHit = false;
-
-    static size_t hits;
-
-    hits = 0;
-
-    auto [stage, _] = World::GetStagePermit();
-
-    for (const pxr::UsdPrim &prim : stage->Traverse())
-    {
-        if (prim.IsA<pxr::UsdGeomCamera>())
-        {
-            if (hits == __CACHE_SIZE)
-            {
-                if (!logMaxHit)
-                {
-                    logMaxHit = true;
-                    log::alert("Hit maximum cache size of {}", __CACHE_SIZE);
-                }
-                break;
-            }
-            if (prim.GetPath() != __Paths[hits])
-            {
-                __Paths[hits] = prim.GetPath();
-            }
-            hits++;
-        }
-    }
-
-    if (hits != __CACHE_SIZE)
-        logMaxHit = false;
-
-    __Cached_paths = hits;
 }
