@@ -1,4 +1,4 @@
-#include "usd_viewport.h"
+#include "viewports.h"
 
 #include "dt/logging.h"
 #include "dt/core/world.h"
@@ -27,10 +27,10 @@ const char *CULL_STYLES[] = {
     "Front",
     "Back Unless Double-Sided"};
 
-dt::USD_Viewport::USD_Viewport()
+dt::Viewports::Viewports()
 {
-    _Renders[0].Reset();
     _Names[0] = "USD Viewport";
+    _Renders[0].Reset();
 
     for (size_t i = 1; i < _Renders.size(); i++)
     {
@@ -41,7 +41,7 @@ dt::USD_Viewport::USD_Viewport()
     log::debug("Initialized {} USD viewports", _Renders.size());
 }
 
-void dt::USD_Viewport::Draw()
+void dt::Viewports::DrawAll()
 {
     for (size_t i = 0; i < _Renders.size(); i++)
     {
@@ -53,13 +53,13 @@ void dt::USD_Viewport::Draw()
     }
 }
 
-void dt::USD_Viewport::Reset()
+void dt::Viewports::Reset()
 {
     for (auto &render : _Renders)
         render.Reset();
 }
 
-void dt::USD_Viewport::__draw_render(Render &render, const char *name)
+void dt::Viewports::__draw_render(Render &render, const char *name)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{});
 
@@ -154,7 +154,7 @@ void dt::USD_Viewport::__draw_render(Render &render, const char *name)
     ImGui::End();
 }
 
-void dt::USD_Viewport::__draw_render_menu(Render &render)
+void dt::Viewports::__draw_render_menu(Render &render)
 {
     if (ImGui::BeginMenu("Parameter"))
     {
@@ -190,7 +190,7 @@ void dt::USD_Viewport::__draw_render_menu(Render &render)
     }
 }
 
-void dt::USD_Viewport::__draw_static_render_controller()
+void dt::Viewports::__draw_static_render_controller()
 {
     ImGui::Begin("Controller");
     ImGui::InputFloat("Speed", &Render::Speed, 1.f, 20.f, "%.0f");
@@ -198,7 +198,7 @@ void dt::USD_Viewport::__draw_static_render_controller()
     ImGui::End();
 }
 
-void dt::USD_Viewport::__draw_static_render_parameter()
+void dt::Viewports::__draw_static_render_parameter()
 {
     if (ImGui::Begin("Parameter"))
     {
@@ -235,7 +235,7 @@ void dt::USD_Viewport::__draw_static_render_parameter()
 }
 
 // TODO: Use events instaed of checking every frame
-void dt::USD_Viewport::__refresh_camera_paths()
+void dt::Viewports::__refresh_camera_paths()
 {
     unsigned hits = 0;
 

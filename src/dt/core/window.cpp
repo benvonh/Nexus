@@ -114,14 +114,6 @@ void dt::Window::HandleEvents()
             _Live = false;
             return;
         }
-
-        if (event.type == SDL_EVENT_KEY_DOWN &&
-            event.key.scancode == SDL_SCANCODE_Q)
-        {
-            SDL_Event quitEvent;
-            quitEvent.type = SDL_EVENT_QUIT;
-            SDL_PushEvent(&quitEvent);
-        }
     }
 }
 

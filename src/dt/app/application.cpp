@@ -1,13 +1,14 @@
 #include "application.h"
 
-// #include "dt/core/event.h"
+#include "dt/core/filedialog.h"
 #include "dt/core/window.h"
+#include "dt/event/client.h"
 #include "dt/exception.h"
 #include "dt/logging.h"
 #include "dt/render/render.h"
 #include "dt/ui/log_history.h"
 #include "dt/ui/scene_hierarchy.h"
-#include "dt/ui/usd_viewport.h"
+#include "dt/ui/viewports.h"
 
 #include "rclcpp/rclcpp.hpp"
 
@@ -29,7 +30,8 @@ void dt::Application::SpinThread()
 void dt::Application::MainLoop()
 {
     Window window;
-    USD_Viewport viewports;
+    Viewports viewports;
+    FileDialog fileDialog(*window);
 
     while (window)
     {
@@ -69,15 +71,26 @@ void dt::Application::MainLoop()
             // for (int i = 0; i < renderCount; ++i)
             // {
             //     render[i].Draw();
-                    // _Render_active = i;
-                    // _Renders[i].enable_free_camera();
-                    // SDL_SetWindowRelativeMouseMode(_Window, true);
-                    // io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            // _Render_active = i;
+            // _Renders[i].enable_free_camera();
+            // SDL_SetWindowRelativeMouseMode(_Window, true);
+            // io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
             // }
-            viewports.Draw();
+            viewports.DrawAll();
+
+            if (ImGui::Button("Open File Dialog"))
+            {
+                FileDialog::Show<FileDialog::Mode::OPEN>(
+                    [](std::string filename, int filter) {
+                        log::event("Selected file: {} with filter {}", filename, filter);
+                    },
+                    FileDialog::IMAGE_FILTER);
+            }
 
             window.FinishFrame();
             window.HandleEvents();
+
+            Client::Dispatch();
 
             _Throw_from_ROS();
         }

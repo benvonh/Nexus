@@ -41,14 +41,12 @@ unsigned dt::Render::operator()(const pxr::SdfPath &path)
 void dt::Render::Reset()
 {
     _Engine.emplace();
+    _Engine->SetEnablePresentation(false);
 
     if (!_Engine->SetRendererAov(pxr::HdAovTokens->color))
         throw exception("Error setting AOV to color");
 
-    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
-    _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-    _Engine->SetRenderBufferSize(this->size);
-    _Engine->SetEnablePresentation(false);
+    this->UpdateSize();
 }
 
 void dt::Render::UpdateSize()

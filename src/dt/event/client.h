@@ -2,33 +2,49 @@
 
 #include "event.h"
 
-#include "dt/types.h"
-#include "dt/logging.h"
 #include "dt/exception.h"
+#include "dt/logging.h"
+#include "dt/types.h"
 
-#include <vector>
-#include <typeindex>
 #include <functional>
+#include <mutex>
+#include <queue>
+#include <typeindex>
 #include <unordered_map>
+#include <vector>
 
 namespace dt
 {
-    // TODO: Implement unregiester functionality
+    // TODO: Implement unregister functionality
     struct Client
     {
         using Callback = std::function<void(const Event &)>;
-        using Registry = std::unordered_map<std::type_index, std::vector<Callback>>;
 
     public:
-        void SetRegistryTo(Ref<Registry> &registry)
+        static void Dispatch()
         {
-            DT_THROW_IF(registry != nullptr, std::logic_error);
-            _Registry = registry;
+            S__Mutex.lock();
+
+            while (!S__Queue.empty())
+            {
+                auto fn = std::move(S__Queue.front());
+                S__Queue.pop();
+                fn();
+            }
+
+            S__Mutex.unlock();
         }
 
     protected:
+        static void Queue(std::function<void()> &&fn)
+        {
+            S__Mutex.lock();
+            S__Queue.emplace(std::move(fn));
+            S__Mutex.unlock();
+        }
+
         template <typename T, typename F>
-        void Register(F &&fn)
+        static void Register(F &&fn)
         {
             const auto index = std::type_index(typeid(T));
 
@@ -40,31 +56,33 @@ namespace dt
                 }
                 else
                 {
-                    throw exception("Cast to {} was null", typeid(T).name());
+                    throw exception("Cast to {} gave nullptr", typeid(T).name());
                 }
             };
 
-            (*_Registry)[index].push_back(wrapper);
+            S__Registry[index].push_back(wrapper);
         }
 
-        void Notify(const Event &event)
+        static void Notify(const Event &event)
         {
             const auto index = std::type_index(typeid(event));
 
-            const auto handlers = _Registry->find(index);
+            const auto handlers = S__Registry.find(index);
 
-            if (handlers != _Registry->end())
+            if (handlers != S__Registry.end())
             {
                 for (const auto &fn : handlers->second)
                     fn(event);
             }
             else
             {
-                log::alert("Notified  {} but no one cares", typeid(event).name());
+                log::alert("Notified about {} but nobody cares", typeid(event).name());
             }
         }
 
     private:
-        Ref<Registry> _Registry;
+        static inline std::mutex S__Mutex;
+        static inline std::queue<std::function<void()>> S__Queue;
+        static inline std::unordered_map<std::type_index, std::vector<Callback>> S__Registry;
     };
 }

@@ -14,12 +14,12 @@
 
 namespace dt
 {
-    class USD_Viewport
+    class Viewports
     {
     public:
-        USD_Viewport();
+        Viewports();
 
-        void Draw();
+        void DrawAll();
 
         void Reset();
 

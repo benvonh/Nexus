@@ -1,5 +1,4 @@
 #include "dt/app/application.h"
-#include "dt/exception.h"
 #include "dt/logging.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -7,7 +6,7 @@
 
 int main(int argc, char *argv[])
 {
-    dt::log::debug("Welcome to Digital Twin v?");
+    dt::log::debug("Welcome to Digital Twin v0.1");
 
 #ifdef _DEBUG
     dt::Application app(argc, argv);

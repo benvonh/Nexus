@@ -115,18 +115,37 @@ target_compile_definitions(ImGUI PRIVATE IMGUI_ENABLE_FREETYPE)
 set(SOURCE
   src/dt/app/application.cpp
   src/dt/app/application.h
+  
+  src/dt/core/filedialog.cpp
+  src/dt/core/filedialog.h
+  src/dt/core/permit.h
   src/dt/core/window.cpp
   src/dt/core/window.h
   src/dt/core/window_theme.cpp
   src/dt/core/window_theme.h
   src/dt/core/world.cpp
+  src/dt/core/world.h
+  
+  src/dt/event/client.h
+  src/dt/event/event.h
+  
+  src/dt/render/controller.cpp
+  src/dt/render/controller.h
+  src/dt/render/parameter.h
+  src/dt/render/render.cpp
+  src/dt/render/render.h
+  
+  src/dt/ui/log_history.h
+  src/dt/ui/scene_hierarchy.h
+  src/dt/ui/viewports.cpp
+  src/dt/ui/viewports.h
+  src/dt/utility.h
+  
   src/dt/exception.h
   src/dt/logging.h
-  src/dt/render/controller.cpp
-  src/dt/render/render.cpp
   src/dt/types.h
-  src/dt/ui/usd_viewport.cpp
   src/dt/utility.h
+  
   src/main.cpp)
 
 add_executable(${TARGET} ${SOURCE})
