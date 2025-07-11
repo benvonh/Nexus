@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dt/event/client.h"
 #include "dt/render/render.h"
 
 #include "pxr/usd/sdf/path.h"
@@ -14,33 +15,43 @@
 
 namespace dt
 {
-    class Viewports
+    class Viewports : Client
     {
     public:
         Viewports();
 
-        void DrawAll();
+        void draw();
 
-        void Reset();
+        void reset();
 
     private:
-        void __draw_render(Render &, const char *);
+        void draw_render(size_t index);
 
-        void __draw_render_menu(Render &);
+        void draw_render_menu(Render &render);
 
-        void __draw_static_render_controller();
+        void draw_static_render_controller();
 
-        void __draw_static_render_parameter();
+        void draw_static_render_parameter();
 
-        void __refresh_camera_paths();
+        void refresh_camera_paths();
 
-        int _Active = 0;
+        // Index of render that consumes input
+        int M_Captured = -1;
 
-        std::string _Names[DT_NUMBER_OF_RENDERS];
+        // Number of renders that are active
+        size_t M_Active = 1;
 
-        std::array<Render, DT_NUMBER_OF_RENDERS> _Renders;
+        // Index of camera path for each render
+        int M_CameraIndices[DT_NUMBER_OF_RENDERS];
 
-        std::vector<pxr::SdfPath> _Camera_paths;
+        // Name of each render
+        std::string M_RenderNames[DT_NUMBER_OF_RENDERS];
+
+        // The renders
+        std::array<Render, DT_NUMBER_OF_RENDERS> M_Renders;
+
+        // Path of each camera in the scene
+        std::vector<pxr::SdfPath> M_CameraPaths;
     };
 }
 

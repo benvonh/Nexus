@@ -37,7 +37,7 @@ void dt::Application::MainLoop()
     {
         try
         {
-            window.StartFrame();
+            window.start_frame();
 
             draw_log_history();
             draw_scene_hierarchy();
@@ -53,7 +53,7 @@ void dt::Application::MainLoop()
             //             if (renderCount < sizeof(render))
             //             {
             //                 renderCount++;
-            //                 render[renderCount - 1].Reset();
+            //                 render[renderCount - 1].reset();
             //             }
             //         }
             //         if (ImGui::Button("Remove Render Viewport"))
@@ -76,27 +76,18 @@ void dt::Application::MainLoop()
             // SDL_SetWindowRelativeMouseMode(_Window, true);
             // io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
             // }
-            viewports.DrawAll();
+            viewports.draw();
 
-            if (ImGui::Button("Open File Dialog"))
-            {
-                FileDialog::Show<FileDialog::Mode::OPEN>(
-                    [](std::string filename, int filter) {
-                        log::event("Selected file: {} with filter {}", filename, filter);
-                    },
-                    FileDialog::IMAGE_FILTER);
-            }
+            window.finish_frame();
+            window.process_events();
 
-            window.FinishFrame();
-            window.HandleEvents();
-
-            Client::Dispatch();
+            Client::dispatch();
 
             _Throw_from_ROS();
         }
-        catch (const __exception__ &e)
+        catch (const Exception &e)
         {
-            window.ShowException(e);
+            window.show_exception(e);
         }
     }
 }

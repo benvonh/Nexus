@@ -11,12 +11,13 @@ class SDL_Window;
 
 namespace dt
 {
-    class Application;
     class FileDialog : Client
     {
-        friend class Application;
-
     public:
+        FileDialog(SDL_Window *window);
+
+        ~FileDialog() noexcept(false);
+
         static constexpr SDL_DialogFileFilter USD_FILTER[] = {
             {"USD Files", "usd;usda;usdc;usdz"}};
 
@@ -49,22 +50,18 @@ namespace dt
         static void Show(std::function<void(std::string, int)> &&fn, const SDL_DialogFileFilter (&f)[NF])
         {
             auto *fnPtr = new std::function<void(std::string, int)>(std::move(fn));
-            void *userdata = static_cast<void *>(fnPtr);
+            void *ptr = static_cast<void *>(fnPtr);
 
             if constexpr (MODE == Mode::OPEN)
-                SDL_ShowOpenFileDialog(callback, userdata, S__Window, f, NF, nullptr, false);
+                SDL_ShowOpenFileDialog(callback, ptr, S_Window, f, NF, nullptr, false);
 
             if constexpr (MODE == Mode::SAVE)
-                SDL_ShowSaveFileDialog(callback, userdata, S__Window, f, NF, nullptr);
+                SDL_ShowSaveFileDialog(callback, ptr, S_Window, f, NF, nullptr);
         }
 
     private:
-        FileDialog(SDL_Window *window);
-
-        ~FileDialog() noexcept(false);
-
         static void callback(void *, const char *const *, int) noexcept;
 
-        static inline SDL_Window *S__Window = nullptr;
+        static inline SDL_Window *S_Window = nullptr;
     };
 }

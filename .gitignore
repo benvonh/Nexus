@@ -52,8 +52,4 @@ qtcreator-*
 # Catkin custom files
 CATKIN_IGNORE
 
-imgui.ini
-temp.*
-test.*
-
 .vscode/settings.json

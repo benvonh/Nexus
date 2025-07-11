@@ -111,7 +111,7 @@ namespace dt
                     std::cout << termcolor::red;
                     break;
                 }
-                std::cout << entry.Message << termcolor::reset << std::endl;
+                std::cout << entry.Message << termcolor::reset << '\n';
                 _Entries[_Index] = std::move(entry);
                 _Index = (_Index + 1) % N;
             }

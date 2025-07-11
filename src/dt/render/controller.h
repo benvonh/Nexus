@@ -4,12 +4,11 @@
 
 namespace dt
 {
-    class Controller
+    struct Controller
     {
-    public:
         Controller();
 
-        enum class Direction
+        enum class Direction : char
         {
             FORWARD,
             BACKWARD,
@@ -20,19 +19,18 @@ namespace dt
         };
 
         template <Direction D>
-        void Move(const float dt);
+        void move(const float dt);
 
-        void Look(const float dx, const float dy, const float dt);
+        void look(const float dx, const float dy, const float dt);
 
-        void TransformFrom(const pxr::GfCamera &camera);
+        void transform_from(const pxr::GfCamera &camera);
 
-        double yaw = 0.0;
-        double pitch = 90.0;
+        double Yaw = 0.0;
+        double Pitch = 90.0;
 
-        pxr::GfCamera camera;
+        pxr::GfCamera Camera;
 
-        static inline float Speed = 5.f;
-        static inline float Sense = 10.f;
-
+        static inline float SPEED = 5.f;
+        static inline float SENSITIVITY = 10.f;
     };
 }

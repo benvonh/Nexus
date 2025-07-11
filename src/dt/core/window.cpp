@@ -1,34 +1,35 @@
 #include "window.h"
 #include "window_theme.h"
 
-#include "dt/logging.h"
+#include "dt/event/keyboard_event.h"
+#include "dt/event/mouse_event.h"
+#include "dt/event/viewport_capture_event.h"
 #include "dt/exception.h"
+#include "dt/logging.h"
 
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_opengl3.h"
 
-#define SDL_INVOKE(__fn__) \
-    DT_INVOKE(__fn__, std::runtime_error, SDL_GetError())
+#define SDL_DO(fn)                                        \
+    do                                                    \
+    {                                                     \
+        if (!(fn)) [[unlikely]]                           \
+            throw std::runtime_error(ex(SDL_GetError())); \
+    } while (0)
 
-#define IMGUI_INVOKE(__fn__) \
-    DT_INVOKE(__fn__, std::runtime_error, "ImGUI failure!")
-
-// We want to specify why an expression fails
-// with the SDL error message so the macro
-// is the same.
-#define SDL_ASSERT SDL_INVOKE
+#define SDL_ASSERT(expr) SDL_DO(expr)
 
 dt::Window::Window()
 {
-    SDL_INVOKE(SDL_Init(SDL_INIT_VIDEO));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6));
-    SDL_INVOKE(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-                                   SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
+    SDL_DO(SDL_Init(SDL_INIT_VIDEO));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 6));
+    SDL_DO(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                               SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
 
 #ifdef _DEBUG
     const char *windowTitle = "Digital Twin (Debug)";
@@ -37,53 +38,77 @@ dt::Window::Window()
 #endif
 
     constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-    _Window = SDL_CreateWindow(windowTitle, 1280, 720, windowFlags);
-    SDL_ASSERT(_Window != nullptr);
+    M_Window = SDL_CreateWindow(windowTitle, 1280, 720, windowFlags);
+    SDL_ASSERT(M_Window != nullptr);
 
     constexpr auto windowCenter = SDL_WINDOWPOS_CENTERED;
-    SDL_INVOKE(SDL_SetWindowPosition(_Window, windowCenter, windowCenter));
+    SDL_DO(SDL_SetWindowPosition(M_Window, windowCenter, windowCenter));
 
-    _Context = SDL_GL_CreateContext(_Window);
-    SDL_ASSERT(_Context != nullptr);
-    SDL_INVOKE(SDL_GL_MakeCurrent(_Window, _Context));
-    SDL_INVOKE(SDL_GL_SetSwapInterval(1));
-    __create_layer();
+    M_Context = SDL_GL_CreateContext(M_Window);
+    SDL_ASSERT(M_Context != nullptr);
+    SDL_DO(SDL_GL_MakeCurrent(M_Window, M_Context));
+    SDL_DO(SDL_GL_SetSwapInterval(1));
+
+    this->create_layer();
+    this->on<ViewportCaptureEvent>(
+        [this](const ViewportCaptureEvent &e)
+        {
+            log::debug("Viewport capture = {}", e.Capture);
+            ImGuiIO &io = ImGui::GetIO();
+            M_InViewport = e.Capture;
+
+            if (e.Capture)
+            {
+                SDL_SetWindowRelativeMouseMode(M_Window, true);
+                io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+            }
+            else
+            {
+                const float mouseX = io.DisplaySize.x / 2;
+                const float mouseY = io.DisplaySize.y / 2;
+                SDL_WarpMouseInWindow(M_Window, mouseX, mouseY);
+                SDL_DO(SDL_SetWindowRelativeMouseMode(M_Window, false));
+                io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+            }
+        });
 }
 
 dt::Window::~Window() noexcept(false)
 {
-    __destroy_layer();
-    SDL_INVOKE(SDL_GL_DestroyContext(_Context));
-    SDL_DestroyWindow(_Window);
+    this->destroy_layer();
+    SDL_DO(SDL_GL_DestroyContext(M_Context));
+    SDL_DestroyWindow(M_Window);
     SDL_Quit();
 }
 
-void dt::Window::ShowException(const dt::__exception__ &e)
+void dt::Window::show_exception(const Exception &e)
 {
+    log::debug("Displaying exception in message box...");
     const auto flag = SDL_MESSAGEBOX_ERROR;
     const char *title = "Oops! An error occurred...";
-    SDL_INVOKE(SDL_ShowSimpleMessageBox(flag, title, e.what(), _Window));
-    __destroy_layer();
-    __create_layer();
+    SDL_DO(SDL_ShowSimpleMessageBox(flag, title, e.what(), M_Window));
+    this->destroy_layer();
+    this->create_layer();
 }
 
-void dt::Window::SetVSync(bool enable)
+void dt::Window::set_vsync(bool enable)
 {
+    log::event("VSync = {}", enable);
     // TODO: We can support adaptive VSync
-    SDL_INVOKE(SDL_GL_SetSwapInterval(enable ? 1 : 0));
+    SDL_DO(SDL_GL_SetSwapInterval(enable ? 1 : 0));
 }
 
-void dt::Window::StartFrame()
+void dt::Window::start_frame()
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
 
     ImGui::NewFrame();
     ImGui::DockSpaceOverViewport();
-    ImGui::ShowDemoWindow(&_Show_demo);
+    ImGui::ShowDemoWindow(&M_ShowDemo);
 }
 
-void dt::Window::FinishFrame()
+void dt::Window::finish_frame()
 {
     ImGui::Render();
 
@@ -95,82 +120,56 @@ void dt::Window::FinishFrame()
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    SDL_INVOKE(SDL_GL_SwapWindow(_Window));
+    SDL_DO(SDL_GL_SwapWindow(M_Window));
 }
 
-void dt::Window::HandleEvents()
+void dt::Window::process_events()
 {
+    ImGuiIO &io = ImGui::GetIO();
+
     SDL_Event event;
 
-    while (SDL_PollEvent(&event))
+    if (M_InViewport)
     {
-        if (ImGui_ImplSDL3_ProcessEvent(&event))
-            continue;
-
-        if (event.type == SDL_EVENT_QUIT ||
-            (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-             event.window.windowID == SDL_GetWindowID(_Window)))
+        while (SDL_PollEvent(&event))
         {
-            _Live = false;
-            return;
+            if (ImGui_ImplSDL3_ProcessEvent(&event))
+                continue;
+        }
+
+        float x, y;
+        SDL_GetRelativeMouseState(&x, &y);
+        this->send<MouseEvent>(x, y, io.DeltaTime);
+
+        const bool *keyboard = SDL_GetKeyboardState(nullptr);
+        this->send<KeyboardEvent>(keyboard, io.DeltaTime);
+    }
+    else
+    {
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_EVENT_QUIT ||
+                (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+                 event.window.windowID == SDL_GetWindowID(M_Window)))
+            {
+                M_Live = false;
+                return;
+            }
+
+            if (ImGui_ImplSDL3_ProcessEvent(&event))
+            {
+                continue;
+            }
         }
     }
 }
 
-bool dt::Window::ControlRender(Render &render)
-{
-    ImGuiIO &io = ImGui::GetIO();
-
-    float x, y;
-    const SDL_MouseButtonFlags state = SDL_GetRelativeMouseState(&x, &y);
-    render.Look(x, y, io.DeltaTime);
-
-    const bool *keyboard = SDL_GetKeyboardState(nullptr);
-
-    if (keyboard[SDL_SCANCODE_W])
-    {
-        render.Move<Controller::Direction::FORWARD>(io.DeltaTime);
-    }
-    if (keyboard[SDL_SCANCODE_A])
-    {
-        render.Move<Controller::Direction::LEFT>(io.DeltaTime);
-    }
-    // if (keyboard[SDL_SCANCODE_S])
-    if (keyboard[SDL_SCANCODE_R])
-    {
-        render.Move<Controller::Direction::BACKWARD>(io.DeltaTime);
-    }
-    // if (keyboard[SDL_SCANCODE_D])
-    if (keyboard[SDL_SCANCODE_R])
-    {
-        render.Move<Controller::Direction::RIGHT>(io.DeltaTime);
-    }
-    if (keyboard[SDL_SCANCODE_SPACE])
-    {
-        render.Move<Controller::Direction::UP>(io.DeltaTime);
-    }
-    if (keyboard[SDL_SCANCODE_LSHIFT])
-    {
-        render.Move<Controller::Direction::DOWN>(io.DeltaTime);
-    }
-    if (keyboard[SDL_SCANCODE_ESCAPE])
-    {
-        const float mouseX = io.DisplaySize.x / 2;
-        const float mouseY = io.DisplaySize.y / 2;
-        SDL_WarpMouseInWindow(_Window, mouseX, mouseY);
-        SDL_SetWindowRelativeMouseMode(_Window, false);
-        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-        return false;
-    }
-    return true;
-}
-
-void dt::Window::__create_layer()
+void dt::Window::create_layer()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    IMGUI_INVOKE(ImGui_ImplOpenGL3_Init("#version 460 core"));
-    IMGUI_INVOKE(ImGui_ImplSDL3_InitForOpenGL(_Window, _Context));
+    CHECK(ImGui_ImplOpenGL3_Init("#version 460 core"), std::runtime_error);
+    CHECK(ImGui_ImplSDL3_InitForOpenGL(M_Window, M_Context), std::runtime_error);
 
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -187,7 +186,7 @@ void dt::Window::__create_layer()
     WindowTheme::UpdateColor(colors);
 }
 
-void dt::Window::__destroy_layer()
+void dt::Window::destroy_layer()
 {
     ImGui_ImplSDL3_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();

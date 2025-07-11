@@ -18,63 +18,25 @@
 
 unsigned dt::Render::operator()()
 {
-    const pxr::GfFrustum f = this->camera.GetFrustum();
-
-    _Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
+    if (FreeCamera)
+    {
+        const auto f = this->Camera.GetFrustum();
+        M_Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
+    }
+    else
+    {
+        M_Engine->SetCameraPath(M_CameraPath);
+    }
     {
         auto [stage, _] = World::GetStagePermit();
-        _Engine->Render(stage->GetPseudoRoot(), this->params);
+        M_Engine->Render(stage->GetPseudoRoot(), this->Params);
     }
-    return __get_texture();
+    return this->get_texture();
 }
 
-unsigned dt::Render::operator()(const pxr::SdfPath &path)
+unsigned dt::Render::get_texture()
 {
-    _Engine->SetCameraPath(path);
-    {
-        auto [stage, _] = World::GetStagePermit();
-        _Engine->Render(stage->GetPseudoRoot(), this->params);
-    }
-    return __get_texture();
-}
-
-void dt::Render::Reset()
-{
-    _Engine.emplace();
-    _Engine->SetEnablePresentation(false);
-
-    if (!_Engine->SetRendererAov(pxr::HdAovTokens->color))
-        throw exception("Error setting AOV to color");
-
-    this->UpdateSize();
-}
-
-void dt::Render::UpdateSize()
-{
-    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->size);
-    _Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-    _Engine->SetRenderBufferSize(this->size);
-}
-
-void dt::Render::EnableFreeCamera(const pxr::SdfPath &path)
-{
-    if (!this->free_camera)
-    {
-        auto [stage, _] = World::GetStagePermit();
-        pxr::UsdGeomCamera cam(stage->GetPrimAtPath(path));
-        this->TransformFrom(cam.GetCamera(this->params.frame));
-    }
-    this->free_camera = true;
-}
-
-void dt::Render::DisableFreeCamera()
-{
-    this->free_camera = false;
-}
-
-unsigned dt::Render::__get_texture()
-{
-    const auto handle = _Engine->GetAovTexture(pxr::HdAovTokens->color);
+    const auto handle = M_Engine->GetAovTexture(pxr::HdAovTokens->color);
 
     if (!handle)
         throw exception("AOV texture handle is null");
@@ -88,4 +50,34 @@ unsigned dt::Render::__get_texture()
         throw exception("OpenGL texture is invalid");
 
     return texture->GetTextureId();
+}
+
+void dt::Render::reset()
+{
+    M_Engine.emplace();
+    M_Engine->SetEnablePresentation(false);
+
+    if (!M_Engine->SetRendererAov(pxr::HdAovTokens->color))
+        throw exception("Error setting AOV to color");
+
+    this->update_size();
+}
+
+void dt::Render::update_size()
+{
+    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), Size);
+    M_Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
+    M_Engine->SetRenderBufferSize(Size);
+}
+
+void dt::Render::transform_to_camera()
+{
+    auto [stage, _] = World::GetStagePermit();
+    pxr::UsdGeomCamera c(stage->GetPrimAtPath(M_CameraPath));
+    this->transform_from(c.GetCamera(this->Params.frame));
+}
+
+void dt::Render::set_camera_path(const pxr::SdfPath &path)
+{
+    M_CameraPath = path;
 }

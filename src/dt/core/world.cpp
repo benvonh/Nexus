@@ -6,60 +6,57 @@
 #include "pxr/usd/usdGeom/metrics.h"
 #include "pxr/usd/usdLux/domeLight.h"
 
-/*============================================================================*/
 void dt::World::NewStage(const std::string &path)
 {
-    log::event("Creating a new stage at '{}'", path);
-    std::lock_guard guard(__Mutex);
-    __Stage = pxr::UsdStage::CreateNew(path);
+    log::event("Creating new stage at '{}'", path);
+    std::lock_guard guard(S_Mutex);
+    S_Stage = pxr::UsdStage::CreateNew(path);
+
+    if (!pxr::UsdGeomSetStageUpAxis(S_Stage, pxr::UsdGeomTokens->z))
+        log::alert("Stage could not set up axis to Z");
+
+    if (!pxr::UsdGeomSetStageMetersPerUnit(S_Stage, 1.0))
+        log::alert("Stage could not set meters per unit to 1.0");
 }
 
-/*============================================================================*/
 void dt::World::OpenStage(const std::string &path)
 {
-    log::event("Opening a stage at '{}'", path);
-    std::lock_guard guard(__Mutex);
-    __Stage = pxr::UsdStage::Open(path);
+    log::event("Opening stage at '{}'", path);
+    std::lock_guard guard(S_Mutex);
+    S_Stage = pxr::UsdStage::Open(path);
 }
 
-/*============================================================================*/
 void dt::World::SaveStage()
 {
-    log::event("Saving current stage");
-    std::lock_guard guard(__Mutex);
-    __Stage->SetFramesPerSecond(144.0);
-    __Stage->SetTimeCodesPerSecond(1.0);
-    __Stage->SetStartTimeCode(1.0);
-    __Stage->SetEndTimeCode(GetTime());
-    __Stage->Save();
+    log::event("Saving current stage...");
+    std::lock_guard guard(S_Mutex);
+    S_Stage->SetFramesPerSecond(144.0);
+    S_Stage->SetTimeCodesPerSecond(1.0);
+    S_Stage->SetStartTimeCode(1.0);
+    S_Stage->SetEndTimeCode(GetTime());
+    S_Stage->Save();
 }
 
-/*============================================================================*/
 void dt::World::ExportStage(const std::string &path)
 {
     log::event("Exporting current stage to '{}'", path);
-    std::lock_guard guard(__Mutex);
-    __Stage->SetFramesPerSecond(144.0);
-    __Stage->SetTimeCodesPerSecond(1.0);
-    __Stage->SetStartTimeCode(1.0);
-    __Stage->SetEndTimeCode(GetTime());
-    __Stage->Export(path);
+    std::lock_guard guard(S_Mutex);
+    S_Stage->SetFramesPerSecond(144.0);
+    S_Stage->SetTimeCodesPerSecond(1.0);
+    S_Stage->SetStartTimeCode(1.0);
+    S_Stage->SetEndTimeCode(GetTime());
+    S_Stage->Export(path);
 }
 
-/*============================================================================*/
-pxr::UsdStageRefPtr dt::World::__DefaultStage()
+auto dt::World::DefaultStage() -> pxr::UsdStageRefPtr
 {
     auto stage = pxr::UsdStage::CreateInMemory();
 
     if (!pxr::UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->z))
-    {
         log::alert("Could not set stage up axis to Z");
-    }
 
     if (!pxr::UsdGeomSetStageMetersPerUnit(stage, 1.0))
-    {
         log::alert("Could not set stage meters per unit to 1.0");
-    }
 
     auto dome = pxr::UsdLuxDomeLight::Define(stage, pxr::SdfPath("/studio_dome"));
     auto asset = pxr::SdfAssetPath(R"(C:\pixi_ws\DigitalTwin\assets\studio_small_09_4k.exr)");

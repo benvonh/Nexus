@@ -38,37 +38,36 @@ dt::Window::Window()
     log::debug("Creating SDL3 window...");
 
 #ifdef _DEBUG
-	const char* windowTitle = "Digital Twin (Debug)";
+    const char *windowTitle = "Digital Twin (Debug)";
 #else
-	const char* windowTitle = "Digital Twin (Release)";
+    const char *windowTitle = "Digital Twin (Release)";
 #endif
     constexpr unsigned windowFlags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
-    _Window = SDL_CreateWindow(windowTitle, 1280, 720, windowFlags);
+    M_Window = SDL_CreateWindow(windowTitle, 1280, 720, windowFlags);
 
-    if (_Window == nullptr)
+    if (M_Window == nullptr)
         throw SDL_ERROR;
 
     log::debug("Creating OpenGL context...");
 
-    SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    _Context = SDL_GL_CreateContext(_Window);
+    SDL_SetWindowPosition(M_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    M_Context = SDL_GL_CreateContext(M_Window);
 
-    if (_Context == nullptr)
+    if (M_Context == nullptr)
         throw SDL_ERROR;
 
-    SDL_GL_MakeCurrent(_Window, _Context);
+    SDL_GL_MakeCurrent(M_Window, M_Context);
     SDL_GL_SetSwapInterval(1);
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui_ImplSDL3_InitForOpenGL(_Window, _Context);
+    ImGui_ImplSDL3_InitForOpenGL(M_Window, M_Context);
     ImGui_ImplOpenGL3_Init("#version 460 core");
-
 
     for (auto &render : _Renders)
         render.reset();
 
-    FileDialog::SetWindow(_Window);
+    FileDialog::SetWindow(M_Window);
 }
 
 /*============================================================================*/
@@ -81,8 +80,8 @@ dt::Window::~Window()
     ImGui_ImplSDL3_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_GL_DestroyContext(_Context);
-    SDL_DestroyWindow(_Window);
+    SDL_GL_DestroyContext(M_Context);
+    SDL_DestroyWindow(M_Window);
     SDL_Quit();
 }
 
@@ -91,7 +90,7 @@ void dt::Window::show_exception(const dt::viewable_exception &e)
 {
     log::debug("Showing exception message...");
 
-    if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e, _Window))
+    if (!SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exception", e, M_Window))
         throw SDL_ERROR;
 }
 

@@ -1,12 +1,15 @@
 #include "viewports.h"
 
-#include "dt/logging.h"
 #include "dt/core/world.h"
+#include "dt/event/keyboard_event.h"
+#include "dt/event/mouse_event.h"
+#include "dt/event/viewport_capture_event.h"
+#include "dt/logging.h"
 
+#include "pxr/imaging/hgiGL/texture.h"
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usd/primRange.h"
 #include "pxr/usd/usdGeom/camera.h"
-#include "pxr/imaging/hgiGL/texture.h"
 
 #include "imgui.h"
 
@@ -29,41 +32,78 @@ const char *CULL_STYLES[] = {
 
 dt::Viewports::Viewports()
 {
-    _Names[0] = "USD Viewport";
-    _Renders[0].Reset();
+    M_Renders[0].reset();
+    M_RenderNames[0] = "USD Viewport";
 
-    for (size_t i = 1; i < _Renders.size(); i++)
+    for (size_t i = 1; i < M_Renders.size(); i++)
     {
-        _Renders[i].Reset();
-        _Names[i] = std::format("USD Viewport (#{})", i + 1);
+        M_RenderNames[i] = std::format("USD Viewport (#{})", i + 1);
     }
 
-    log::debug("Initialized {} USD viewports", _Renders.size());
+    log::debug("Initialized {} USD rendering engines", M_Renders.size());
+
+    this->on<MouseEvent>(
+        [this](const MouseEvent &e)
+        {
+            M_Renders[M_Captured].look(e.X, e.Y, e.Tick);
+        });
+
+    this->on<KeyboardEvent>(
+        [this](const KeyboardEvent &e)
+        {
+            Render &render = M_Renders[M_Captured];
+
+            if (e.Keys[SDL_SCANCODE_W])
+            {
+                render.move<Controller::Direction::FORWARD>(e.Tick);
+            }
+            if (e.Keys[SDL_SCANCODE_A])
+            {
+                render.move<Controller::Direction::LEFT>(e.Tick);
+            }
+            // if (e.Keys[SDL_SCANCODE_S])
+            if (e.Keys[SDL_SCANCODE_R])
+            {
+                render.move<Controller::Direction::BACKWARD>(e.Tick);
+            }
+            // if (e.Keys[SDL_SCANCODE_D])
+            if (e.Keys[SDL_SCANCODE_S])
+            {
+                render.move<Controller::Direction::RIGHT>(e.Tick);
+            }
+            if (e.Keys[SDL_SCANCODE_SPACE])
+            {
+                render.move<Controller::Direction::UP>(e.Tick);
+            }
+            if (e.Keys[SDL_SCANCODE_LSHIFT])
+            {
+                render.move<Controller::Direction::DOWN>(e.Tick);
+            }
+            if (e.Keys[SDL_SCANCODE_ESCAPE])
+            {
+                this->send<ViewportCaptureEvent>(false);
+                M_Captured = -1;
+            }
+        });
 }
 
-void dt::Viewports::DrawAll()
+void dt::Viewports::draw()
 {
-    for (size_t i = 0; i < _Renders.size(); i++)
+    for (size_t i = 0; i < M_Active; i++)
     {
-        Render &render = _Renders[i];
-        __draw_render(render, _Names[i].c_str());
-        __draw_static_render_controller();
-        __draw_static_render_parameter();
-        __refresh_camera_paths();
+        this->draw_render(i);
+        this->draw_static_render_controller();
+        this->draw_static_render_parameter();
     }
 }
 
-void dt::Viewports::Reset()
+void dt::Viewports::draw_render(size_t index)
 {
-    for (auto &render : _Renders)
-        render.Reset();
-}
+    Render &render = M_Renders[index];
 
-void dt::Viewports::__draw_render(Render &render, const char *name)
-{
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{});
 
-    if (ImGui::Begin(name, nullptr, ImGuiWindowFlags_MenuBar))
+    if (ImGui::Begin(M_RenderNames[index].c_str(), nullptr, ImGuiWindowFlags_MenuBar))
     {
         ImGui::PopStyleVar();
 
@@ -77,15 +117,15 @@ void dt::Viewports::__draw_render(Render &render, const char *name)
                 if (ImGui::MenuItem("Save render as image"))
                 {
                     // auto handler = NewPtr<FileHandler>(render.Size[0], _Size[1]);
-                    // glBindTexture(GLrender.TEXTURE_2D, __get_texture());
+                    // glBindTexture(GLrender.TEXTURE_2D, get_texture());
                     // glPixelStorei(GLrender.PACK_ALIGNMENT, 1);
                     // glGetTexImage(GLrender.TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
                     // glBindTexture(GLrender.TEXTURE_2D, 0);
                     // FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGErender.FILTER);
                 }
 
-                if (ImGui::InputInt2("Resolution", &render.size[0]))
-                    render.UpdateSize();
+                if (ImGui::InputInt2("Resolution", &render.Size[0]))
+                    render.update_size();
 
                 auto get_path = [](void *user_data, int idx) -> const char *
                 {
@@ -93,19 +133,20 @@ void dt::Viewports::__draw_render(Render &render, const char *name)
                     return paths[idx].GetText();
                 };
 
-                if (ImGui::Combo("Camera Path", &_Active, get_path, (void *)_Camera_paths.data(), _Camera_paths.size()))
+                if (ImGui::Combo("Camera Path", (int *)&M_CameraIndices[index], get_path, (void *)M_CameraPaths.data(), M_CameraPaths.size()))
                 {
-                    render.free_camera = false;
+                    render.set_camera_path(M_CameraPaths[M_CameraIndices[index]]);
+                    render.FreeCamera = false;
                 }
 
-                ImGui::Checkbox("Free Camera", &render.free_camera);
+                ImGui::Checkbox("Toggle Free Camera", &render.FreeCamera);
                 ImGui::EndMenu();
             }
-            __draw_render_menu(render);
+            draw_render_menu(render);
             ImGui::EndMenuBar();
         }
 
-        ImVec2 size(render.size[0], render.size[1]);
+        ImVec2 size(render.Size[0], render.Size[1]);
         ImVec2 space = ImGui::GetContentRegionAvail();
         ImVec2 offset = ImGui::GetCursorPos();
 
@@ -145,7 +186,19 @@ void dt::Viewports::__draw_render(Render &render, const char *name)
         }
         ImGui::SetCursorPos(offset);
         ImGui::Image(render(), size, ImVec2(0, 1), ImVec2(1, 0));
-        // render.Capture_input = ImGui::IsItemHovered() && ImGui::IsMouseClicked(0);
+
+        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+        {
+            M_Captured = index;
+
+            if (!render.FreeCamera)
+            {
+                render.transform_to_camera();
+            }
+
+            render.FreeCamera = true;
+            this->send<ViewportCaptureEvent>(true);
+        }
     }
     else
     {
@@ -154,88 +207,88 @@ void dt::Viewports::__draw_render(Render &render, const char *name)
     ImGui::End();
 }
 
-void dt::Viewports::__draw_render_menu(Render &render)
+void dt::Viewports::draw_render_menu(Render &render)
 {
     if (ImGui::BeginMenu("Parameter"))
     {
-        ImGui::Checkbox("Lighting", &render.Params.enableLighting);
-        ImGui::Checkbox("Scene Lights", &render.Params.enableSceneLights);
-        ImGui::Checkbox("Scene Materials", &render.Params.enableSceneMaterials);
-        ImGui::Checkbox("Show Guides", &render.Params.showGuides);
-        ImGui::Checkbox("Show Proxy", &render.Params.showProxy);
-        ImGui::Checkbox("Show Render", &render.Params.showRender);
-        ImGui::Checkbox("Force Refresh", &render.Params.forceRefresh);
-        ImGui::Checkbox("Sample Alpha to Coverage", &render.Params.enableSampleAlphaToCoverage);
-        ImGui::Checkbox("Gamma Correct Colors", &render.Params.gammaCorrectColors);
-        ImGui::ColorEdit4("Clear Color", &render.Params.clearColor[0]);
-        ImGui::SliderFloat("Complexity", &render.Params.complexity, 1.f, 1.5f, "%.1f");
-        ImGui::Combo("Draw Mode", (int *)&render.Params.drawMode, DRAW_MODES, std::size(DRAW_MODES));
-        ImGui::Combo("Cull Style", (int *)&render.Params.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
-        ImGui::Checkbox("Live Playback", &render.Live);
+        ImGui::Checkbox("Lighting", &render.PARAMS.enableLighting);
+        ImGui::Checkbox("Scene Lights", &render.PARAMS.enableSceneLights);
+        ImGui::Checkbox("Scene Materials", &render.PARAMS.enableSceneMaterials);
+        ImGui::Checkbox("Show Guides", &render.PARAMS.showGuides);
+        ImGui::Checkbox("Show Proxy", &render.PARAMS.showProxy);
+        ImGui::Checkbox("Show Render", &render.PARAMS.showRender);
+        ImGui::Checkbox("Force Refresh", &render.PARAMS.forceRefresh);
+        ImGui::Checkbox("Sample Alpha to Coverage", &render.PARAMS.enableSampleAlphaToCoverage);
+        ImGui::Checkbox("Gamma Correct Colors", &render.PARAMS.gammaCorrectColors);
+        ImGui::ColorEdit4("Clear Color", &render.PARAMS.clearColor[0]);
+        ImGui::SliderFloat("Complexity", &render.PARAMS.complexity, 1.f, 1.5f, "%.1f");
+        ImGui::Combo("Draw Mode", (int *)&render.PARAMS.drawMode, DRAW_MODES, std::size(DRAW_MODES));
+        ImGui::Combo("Cull Style", (int *)&render.PARAMS.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
+        ImGui::Checkbox("Live Playback", &render.LIVE);
 
-        if (render.Live)
+        if (render.LIVE)
         {
-            render.Time = render.Latest;
-            render.Latest = World::GetTime();
+            render.TIME = render.LATEST;
+            render.LATEST = World::GetTime();
         }
 
-        if (ImGui::SliderFloat("Time Code", &render.Time, 0.f, render.Latest))
+        if (ImGui::SliderFloat("Time Code", &render.TIME, 0.f, render.LATEST))
         {
-            render.Live = false;
+            render.LIVE = false;
         }
 
-        render.Params.frame = render.Time;
+        render.PARAMS.frame = render.TIME;
 
         ImGui::EndMenu();
     }
 }
 
-void dt::Viewports::__draw_static_render_controller()
+void dt::Viewports::draw_static_render_controller()
 {
     ImGui::Begin("Controller");
-    ImGui::InputFloat("Speed", &Render::Speed, 1.f, 20.f, "%.0f");
-    ImGui::InputFloat("Sensitivity", &Render::Sense, 1.f, 20.f, "%.0f");
+    ImGui::InputFloat("Speed", &Render::SPEED, 1.f, 20.f, "%.0f");
+    ImGui::InputFloat("Sensitivity", &Render::SENSITIVITY, 1.f, 20.f, "%.0f");
     ImGui::End();
 }
 
-void dt::Viewports::__draw_static_render_parameter()
+void dt::Viewports::draw_static_render_parameter()
 {
     if (ImGui::Begin("Parameter"))
     {
-        ImGui::Checkbox("Lighting", &Render::Params.enableLighting);
-        ImGui::Checkbox("Scene Lights", &Render::Params.enableSceneLights);
-        ImGui::Checkbox("Scene Materials", &Render::Params.enableSceneMaterials);
-        ImGui::Checkbox("Show Guides", &Render::Params.showGuides);
-        ImGui::Checkbox("Show Proxy", &Render::Params.showProxy);
-        ImGui::Checkbox("Show Render", &Render::Params.showRender);
-        ImGui::Checkbox("Force Refresh", &Render::Params.forceRefresh);
-        ImGui::Checkbox("Sample Alpha to Coverage", &Render::Params.enableSampleAlphaToCoverage);
-        ImGui::Checkbox("Gamma Correct Colors", &Render::Params.gammaCorrectColors);
-        ImGui::ColorEdit4("Clear Color", &Render::Params.clearColor[0]);
-        ImGui::SliderFloat("Complexity", &Render::Params.complexity, 1.f, 1.5f, "%.1f");
-        ImGui::Combo("Draw Mode", (int *)&Render::Params.drawMode, DRAW_MODES, std::size(DRAW_MODES));
-        ImGui::Combo("Cull Style", (int *)&Render::Params.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
-        ImGui::Checkbox("Live Playback", &Render::Live);
+        ImGui::Checkbox("Lighting", &Render::PARAMS.enableLighting);
+        ImGui::Checkbox("Scene Lights", &Render::PARAMS.enableSceneLights);
+        ImGui::Checkbox("Scene Materials", &Render::PARAMS.enableSceneMaterials);
+        ImGui::Checkbox("Show Guides", &Render::PARAMS.showGuides);
+        ImGui::Checkbox("Show Proxy", &Render::PARAMS.showProxy);
+        ImGui::Checkbox("Show Render", &Render::PARAMS.showRender);
+        ImGui::Checkbox("Force Refresh", &Render::PARAMS.forceRefresh);
+        ImGui::Checkbox("Sample Alpha to Coverage", &Render::PARAMS.enableSampleAlphaToCoverage);
+        ImGui::Checkbox("Gamma Correct Colors", &Render::PARAMS.gammaCorrectColors);
+        ImGui::ColorEdit4("Clear Color", &Render::PARAMS.clearColor[0]);
+        ImGui::SliderFloat("Complexity", &Render::PARAMS.complexity, 1.f, 1.5f, "%.1f");
+        ImGui::Combo("Draw Mode", (int *)&Render::PARAMS.drawMode, DRAW_MODES, std::size(DRAW_MODES));
+        ImGui::Combo("Cull Style", (int *)&Render::PARAMS.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
+        ImGui::Checkbox("Live Playback", &Render::LIVE);
     }
 
-    if (Render::Live)
+    if (Render::LIVE)
     {
-        Render::Time = Render::Latest;
-        Render::Latest = World::GetTime();
+        Render::TIME = Render::LATEST;
+        Render::LATEST = World::GetTime();
     }
 
-    if (ImGui::SliderFloat("Time Code", &Render::Time, 0.f, Render::Latest))
+    if (ImGui::SliderFloat("Time Code", &Render::TIME, 0.f, Render::LATEST))
     {
-        Render::Live = false;
+        Render::LIVE = false;
     }
 
-    Render::Params.frame = Render::Time;
+    Render::PARAMS.frame = Render::TIME;
 
     ImGui::End();
 }
 
 // TODO: Use events instaed of checking every frame
-void dt::Viewports::__refresh_camera_paths()
+void dt::Viewports::refresh_camera_paths()
 {
     unsigned hits = 0;
 
@@ -245,13 +298,13 @@ void dt::Viewports::__refresh_camera_paths()
     {
         if (prim.IsA<pxr::UsdGeomCamera>())
         {
-            if (hits >= _Camera_paths.size())
+            if (hits >= M_CameraPaths.size())
             {
-                _Camera_paths.emplace_back(prim.GetPath());
+                M_CameraPaths.emplace_back(prim.GetPath());
             }
-            else if (prim.GetPath() != _Camera_paths[hits])
+            else if (prim.GetPath() != M_CameraPaths[hits])
             {
-                _Camera_paths[hits] = prim.GetPath();
+                M_CameraPaths[hits] = prim.GetPath();
             }
             hits++;
         }

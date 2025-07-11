@@ -18,24 +18,23 @@ namespace dt
         [[nodiscard]]
         unsigned operator()();
 
-        [[nodiscard]]
-        unsigned operator()(const pxr::SdfPath &path);
+        unsigned get_texture();
 
-        void Reset();
+        void reset();
 
-        void UpdateSize();
+        void update_size();
 
-        void EnableFreeCamera(const pxr::SdfPath &path);
+        void transform_to_camera();
 
-        void DisableFreeCamera();
+        void set_camera_path(const pxr::SdfPath &);
 
-        bool free_camera = true;
+        bool FreeCamera = true;
 
-        pxr::GfVec2i size = {1280, 720};
+        pxr::GfVec2i Size = {1280, 720};
 
     private:
-        unsigned __get_texture();
+        pxr::SdfPath M_CameraPath;
 
-        std::optional<pxr::UsdImagingGLEngine> _Engine;
+        std::optional<pxr::UsdImagingGLEngine> M_Engine;
     };
 }

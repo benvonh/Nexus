@@ -21,30 +21,30 @@ namespace dt
         using Callback = std::function<void(const Event &)>;
 
     public:
-        static void Dispatch()
+        static void dispatch()
         {
-            S__Mutex.lock();
+            S_Mutex.lock();
 
-            while (!S__Queue.empty())
+            while (!S_Queue.empty())
             {
-                auto fn = std::move(S__Queue.front());
-                S__Queue.pop();
+                auto fn = std::move(S_Queue.front());
+                S_Queue.pop();
                 fn();
             }
 
-            S__Mutex.unlock();
+            S_Mutex.unlock();
         }
 
     protected:
-        static void Queue(std::function<void()> &&fn)
+        static void queue(std::function<void()> &&fn)
         {
-            S__Mutex.lock();
-            S__Queue.emplace(std::move(fn));
-            S__Mutex.unlock();
+            S_Mutex.lock();
+            S_Queue.emplace(std::move(fn));
+            S_Mutex.unlock();
         }
 
         template <typename T, typename F>
-        static void Register(F &&fn)
+        static void on(F &&fn)
         {
             const auto index = std::type_index(typeid(T));
 
@@ -60,29 +60,31 @@ namespace dt
                 }
             };
 
-            S__Registry[index].push_back(wrapper);
+            S_Registry[index].push_back(wrapper);
         }
 
-        static void Notify(const Event &event)
+        template <typename T, typename... Args>
+        static void send(Args &&...args)
         {
-            const auto index = std::type_index(typeid(event));
+            const auto index = std::type_index(typeid(T));
 
-            const auto handlers = S__Registry.find(index);
+            const auto handlers = S_Registry.find(index);
 
-            if (handlers != S__Registry.end())
+            if (handlers != S_Registry.end())
             {
+                T event(std::forward<Args>(args)...);
                 for (const auto &fn : handlers->second)
                     fn(event);
             }
             else
             {
-                log::alert("Notified about {} but nobody cares", typeid(event).name());
+                log::alert("Sent {} but no one cares", typeid(T).name());
             }
         }
 
     private:
-        static inline std::mutex S__Mutex;
-        static inline std::queue<std::function<void()>> S__Queue;
-        static inline std::unordered_map<std::type_index, std::vector<Callback>> S__Registry;
+        static inline std::mutex S_Mutex;
+        static inline std::queue<std::function<void()>> S_Queue;
+        static inline std::unordered_map<std::type_index, std::vector<Callback>> S_Registry;
     };
 }

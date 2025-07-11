@@ -5,15 +5,15 @@
 
 dt::FileDialog::FileDialog(SDL_Window *window)
 {
-    DT_THROW_IF(window == nullptr, std::invalid_argument);
-    DT_THROW_IF(S__Window != nullptr, std::logic_error);
-    S__Window = window;
+    CHECK(window != nullptr, std::invalid_argument);
+    CHECK(S_Window == nullptr, std::logic_error);
+    S_Window = window;
 }
 
 dt::FileDialog::~FileDialog() noexcept(false)
 {
-    DT_THROW_IF(S__Window == nullptr, std::logic_error);
-    S__Window = nullptr;
+    CHECK(S_Window != nullptr, std::logic_error);
+    S_Window = nullptr;
 }
 
 void dt::FileDialog::callback(void *userdata, const char *const *filelist, int filter) noexcept
@@ -25,7 +25,6 @@ void dt::FileDialog::callback(void *userdata, const char *const *filelist, int f
         dt::log::error("File list was null! SDL reports, \"{}\"", SDL_GetError());
         delete fn;
     }
-
     else if (filelist[0] == nullptr)
     {
         dt::log::debug("Canceled file dialog");
@@ -41,6 +40,6 @@ void dt::FileDialog::callback(void *userdata, const char *const *filelist, int f
             delete fn;
         };
 
-        Client::Queue(std::move(wrapper));
+        Client::queue(std::move(wrapper));
     }
 }

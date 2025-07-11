@@ -30,7 +30,7 @@ namespace dt
         Window();
         ~Window();
 
-        operator bool() const noexcept { return _Live; }
+        operator bool() const noexcept { return M_Live; }
 
         void show_exception(const viewable_exception &);
 
@@ -43,11 +43,11 @@ namespace dt
 
         void __modal_update_during_file_dialog();
 
-        bool _Live = true;
-        bool _Show_demo = false;
+        bool M_Live = true;
+        bool M_ShowDemo = false;
 
-        SDL_Window *_Window = nullptr;
-        SDL_GLContext _Context = nullptr;
+        SDL_Window *M_Window = nullptr;
+        SDL_GLContext M_Context = nullptr;
 
         Browser _Browser;
 

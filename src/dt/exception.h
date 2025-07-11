@@ -5,28 +5,28 @@
 #include <stacktrace>
 #include <string>
 
-#define DT_INVOKE(__fn__, __except__, __why__) \
-    do                                         \
-    {                                          \
-        if (!(__fn__)) [[unlikely]]            \
-            throw __except__(dt::e(__why__));  \
+#define ASSERT(expr)                \
+    do                              \
+    {                               \
+        if (!(expr)) [[unlikely]]   \
+            throw exception(#expr); \
     } while (0)
 
-#define DT_THROW_IF(__expr__, __except__)       \
-    do                                          \
-    {                                           \
-        if ((__expr__)) [[unlikely]]            \
-            throw __except__(dt::e(#__expr__)); \
+#define CHECK(expr, except)          \
+    do                               \
+    {                                \
+        if (!(expr)) [[unlikely]]    \
+            throw except(ex(#expr)); \
     } while (0)
 
 namespace dt
 {
     ///
-    /// @brief Concrete base class for the Digital Twin exception
+    /// @brief Concrete exception
     ///
-    struct __exception__
+    struct Exception
     {
-        constexpr __exception__(std::string &&msg) : Message(msg) {}
+        constexpr Exception(std::string &&msg) : Message(msg) {}
 
         constexpr operator const char *() const noexcept
         {
@@ -42,22 +42,22 @@ namespace dt
     };
 
     ///
-    /// @brief Formats a message for an exception
+    /// @brief Digital Twin exception
     /// @tparam ...T Same as `std::format`
     ///
     template <typename... T>
-    struct exception : __exception__
+    struct exception : Exception
     {
         constexpr exception(const char *fmt, T &&...args,
-                            const std::source_location &src_loc = std::source_location::current())
+                            const std::source_location &srcloc = std::source_location::current())
 
-            : __exception__(
+            : Exception(
                   std::format(
                       "{}({},{})@{}: {}\n\n{}",
-                      src_loc.file_name(),
-                      src_loc.line(),
-                      src_loc.column(),
-                      src_loc.function_name(),
+                      srcloc.file_name(),
+                      srcloc.line(),
+                      srcloc.column(),
+                      srcloc.function_name(),
                       std::vformat(fmt, std::make_format_args(args...)),
                       std::stacktrace::current()))
         {
@@ -68,5 +68,5 @@ namespace dt
     exception(const char *, T &&...) -> exception<T...>;
 
     template <typename... T>
-    using e = exception<T...>;
+    using ex = exception<T...>;
 }

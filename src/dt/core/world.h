@@ -10,28 +10,29 @@
 
 namespace dt
 {
-    class Robot;
-
     class World
     {
-        friend class Robot;
-
     public:
         World() = delete;
         ~World() = delete;
 
         static inline const auto START = std::chrono::steady_clock::now();
 
-        [[nodiscard]] static auto GetTime() noexcept
+        [[nodiscard]]
+        static auto GetTime() noexcept
         {
             using namespace std::chrono;
             return duration<double>(steady_clock::now() - START).count();
         }
 
-        [[nodiscard]] static auto GetStagePermit()
+        [[nodiscard]]
+        static auto GetStagePermit()
         {
-            return StagePermit(__Stage, &__Mutex);
+            return StagePermit(S_Stage, &S_Mutex);
         }
+
+        [[nodiscard]]
+        static auto DefaultStage() -> pxr::UsdStageRefPtr;
 
         static void NewStage(const std::string &path);
 
@@ -42,9 +43,7 @@ namespace dt
         static void ExportStage(const std::string &path);
 
     private:
-        [[nodiscard]] static pxr::UsdStageRefPtr __DefaultStage();
-
-        static inline std::mutex __Mutex;
-        static inline pxr::UsdStageRefPtr __Stage = __DefaultStage();
+        static inline std::mutex S_Mutex;
+        static inline pxr::UsdStageRefPtr S_Stage = World::DefaultStage();
     };
 }
