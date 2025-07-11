@@ -192,9 +192,7 @@ void dt::Viewports::draw_render(size_t index)
             M_Captured = index;
 
             if (!render.FreeCamera)
-            {
                 render.transform_to_camera();
-            }
 
             render.FreeCamera = true;
             this->send<ViewportCaptureEvent>(true);

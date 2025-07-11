@@ -42,40 +42,6 @@ void dt::Application::MainLoop()
             draw_log_history();
             draw_scene_hierarchy();
 
-            // if (ImGui::BeginMainMenuBar())
-            // {
-            //     if (ImGui::BeginMenu("Render Viewort"))
-            //     {
-            //         ImGui::Text("Viewports: %d/%d", renderCount, sizeof(render));
-
-            //         if (ImGui::Button("Add Render Viewport"))
-            //         {
-            //             if (renderCount < sizeof(render))
-            //             {
-            //                 renderCount++;
-            //                 render[renderCount - 1].reset();
-            //             }
-            //         }
-            //         if (ImGui::Button("Remove Render Viewport"))
-            //         {
-            //             if (renderCount > 1)
-            //             {
-            //                 renderCount--;
-            //             }
-            //         }
-            //         ImGui::EndMenu();
-            //     }
-            //     ImGui::EndMainMenuBar();
-            // }
-
-            // for (int i = 0; i < renderCount; ++i)
-            // {
-            //     render[i].Draw();
-            // _Render_active = i;
-            // _Renders[i].enable_free_camera();
-            // SDL_SetWindowRelativeMouseMode(_Window, true);
-            // io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
-            // }
             viewports.draw();
 
             window.finish_frame();

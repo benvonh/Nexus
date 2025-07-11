@@ -69,6 +69,8 @@ dt::Window::Window()
                 SDL_WarpMouseInWindow(M_Window, mouseX, mouseY);
                 SDL_DO(SDL_SetWindowRelativeMouseMode(M_Window, false));
                 io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+                // SDL_PumpEvents();
+                // SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
             }
         });
 }
@@ -84,6 +86,7 @@ dt::Window::~Window() noexcept(false)
 void dt::Window::show_exception(const Exception &e)
 {
     log::debug("Displaying exception in message box...");
+    this->send<ViewportCaptureEvent>(false);
     const auto flag = SDL_MESSAGEBOX_ERROR;
     const char *title = "Oops! An error occurred...";
     SDL_DO(SDL_ShowSimpleMessageBox(flag, title, e.what(), M_Window));
@@ -131,11 +134,10 @@ void dt::Window::process_events()
 
     if (M_InViewport)
     {
-        while (SDL_PollEvent(&event))
-        {
-            if (ImGui_ImplSDL3_ProcessEvent(&event))
-                continue;
-        }
+        // while (SDL_PollEvent(&event))
+        // {
+        //     ImGui_ImplSDL3_ProcessEvent(&event);
+        // }
 
         float x, y;
         SDL_GetRelativeMouseState(&x, &y);
@@ -157,9 +159,13 @@ void dt::Window::process_events()
             }
 
             if (ImGui_ImplSDL3_ProcessEvent(&event))
-            {
-                continue;
-            }
+                // continue;
+
+                if (event.type == SDL_EVENT_KEY_DOWN &&
+                    event.key.scancode == SDL_SCANCODE_W)
+                {
+                    log::event("W");
+                }
         }
     }
 }
