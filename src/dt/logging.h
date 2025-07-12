@@ -43,7 +43,7 @@ namespace dt
         /// @tparam N
         ///
         template <size_t N>
-        class Buffer
+        class CircularBuffer
         {
         public:
             ///
@@ -58,41 +58,42 @@ namespace dt
                 using difference_type = std::ptrdiff_t;
                 using iterator_category = std::input_iterator_tag;
 
-                Iterator(std::mutex *m, pointer p, int i) : _Count(N - i), _Ptr(p + i), _M(*m) {}
+                // Iterator(std::mutex *m, pointer p, int i) : _Count(N - i), _Ptr(p + i), _M(*m) {}
+                Iterator(std::mutex *m, pointer p, int i) : M_Count(i + 1), M_Ptr(p + i - 1), M_Guard(*m) {}
 
-                ~Iterator() { log::_Busy = false; }
+                ~Iterator() { log::M_Busy = false; }
 
-                Iterator &operator++()
+                Iterator &operator++() noexcept
                 {
-                    if (--_Count == 0)
-                        _Ptr -= N;
+                    if (--M_Count == 0)
+                        M_Ptr += N;
 
-                    _Ptr++;
+                    M_Ptr--;
                     return *this;
                 }
 
-                Iterator operator++(int)
+                Iterator operator++(int) noexcept
                 {
                     Iterator tmp = *this;
-                    *this ++;
+                    *this--;
                     return tmp;
                 }
 
-                bool operator!=(pointer p) const { return _Count > 0 || _Ptr != p; }
+                bool operator!=(pointer p) const { return M_Count > 0 || M_Ptr != p - 1; }
 
-                const pointer operator->() const { return _Ptr; }
+                const pointer operator->() const { return M_Ptr; }
 
-                const reference operator*() const { return *_Ptr; }
+                const reference operator*() const { return *M_Ptr; }
 
             private:
-                int _Count;
-                pointer _Ptr;
-                std::lock_guard<std::mutex> _M;
+                int M_Count;
+                pointer M_Ptr;
+                std::lock_guard<std::mutex> M_Guard;
             };
 
             void operator<<(Entry &&entry)
             {
-                std::lock_guard guard(_Mutex);
+                std::lock_guard guard(M_Mutex);
 
                 switch (entry.Type)
                 {
@@ -112,26 +113,26 @@ namespace dt
                     break;
                 }
                 std::cout << entry.Message << termcolor::reset << '\n';
-                _Entries[_Index] = std::move(entry);
-                _Index = (_Index + 1) % N;
+                M_Entries[M_Index] = std::move(entry);
+                M_Index = (M_Index + 1) % N;
             }
 
             Iterator begin()
             {
-                _Busy = true;
-                return Iterator(&_Mutex, _Entries, _Index);
+                M_Busy = true;
+                return Iterator(&M_Mutex, M_Entries, M_Index);
             }
 
             Iterator::pointer end()
             {
-                return &_Entries[_Index];
+                return &M_Entries[M_Index];
             }
 
             constexpr size_t size() const noexcept { return N; }
 
         private:
-            int _Index = 0;
-            Entry _Entries[N];
+            int M_Index = 0;
+            Entry M_Entries[N];
         };
 
         ///
@@ -146,7 +147,7 @@ namespace dt
                 const std::string fmt = std::vformat(f, std::make_format_args(t...));
                 const std::string msg = std::format("[DEBUG] ({}) : {}", src_loc.function_name(), fmt);
 
-                while (log::_Busy)
+                while (log::M_Busy)
                     std::this_thread::yield();
 
                 Data << Entry(Type::Debug, std::move(msg));
@@ -165,7 +166,7 @@ namespace dt
                 const std::string fmt = std::vformat(f, std::make_format_args(t...));
                 const std::string msg = std::format("[EVENT] ({}) : {}", src_loc.function_name(), fmt);
 
-                while (log::_Busy)
+                while (log::M_Busy)
                     std::this_thread::yield();
 
                 Data << Entry(Type::Event, std::move(msg));
@@ -184,7 +185,7 @@ namespace dt
                 const std::string fmt = std::vformat(f, std::make_format_args(t...));
                 const std::string msg = std::format("[ALERT] ({}) : {}", src_loc.function_name(), fmt);
 
-                while (log::_Busy)
+                while (log::M_Busy)
                     std::this_thread::yield();
 
                 Data << Entry(Type::Alert, std::move(msg));
@@ -203,7 +204,7 @@ namespace dt
                 const std::string fmt = std::vformat(f, std::make_format_args(t...));
                 const std::string msg = std::format("[ERROR] ({}) : {}", src_loc.function_name(), fmt);
 
-                while (log::_Busy)
+                while (log::M_Busy)
                     std::this_thread::yield();
 
                 Data << Entry(Type::Error, std::move(msg));
@@ -225,10 +226,10 @@ namespace dt
         log() = delete;
         ~log() = delete;
 
-        static inline Buffer<100> Data;
+        static inline CircularBuffer<100> Data;
 
     private:
-        static inline std::mutex _Mutex;
-        static inline std::atomic<bool> _Busy = false;
+        static inline std::mutex M_Mutex;
+        static inline std::atomic<bool> M_Busy = false;
     };
 }

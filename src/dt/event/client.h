@@ -4,7 +4,6 @@
 
 #include "dt/exception.h"
 #include "dt/logging.h"
-#include "dt/types.h"
 
 #include <functional>
 #include <mutex>

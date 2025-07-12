@@ -1,5 +1,6 @@
 #include "world.h"
 
+#include "dt/event/scene_reset_event.h"
 #include "dt/logging.h"
 
 #include "pxr/usd/usdGeom/cylinder.h"
@@ -9,7 +10,8 @@
 void dt::World::NewStage(const std::string &path)
 {
     log::event("Creating new stage at '{}'", path);
-    std::lock_guard guard(S_Mutex);
+
+    S_Mutex.lock();
     S_Stage = pxr::UsdStage::CreateNew(path);
 
     if (!pxr::UsdGeomSetStageUpAxis(S_Stage, pxr::UsdGeomTokens->z))
@@ -17,35 +19,51 @@ void dt::World::NewStage(const std::string &path)
 
     if (!pxr::UsdGeomSetStageMetersPerUnit(S_Stage, 1.0))
         log::alert("Stage could not set meters per unit to 1.0");
+
+    S_Mutex.unlock();
+
+    Client::send<SceneResetEvent>();
 }
 
 void dt::World::OpenStage(const std::string &path)
 {
     log::event("Opening stage at '{}'", path);
-    std::lock_guard guard(S_Mutex);
+
+    S_Mutex.lock();
     S_Stage = pxr::UsdStage::Open(path);
+    S_Mutex.unlock();
+
+    Client::send<SceneResetEvent>();
 }
 
 void dt::World::SaveStage()
 {
     log::event("Saving current stage...");
-    std::lock_guard guard(S_Mutex);
+
+    S_Mutex.lock();
     S_Stage->SetFramesPerSecond(144.0);
     S_Stage->SetTimeCodesPerSecond(1.0);
     S_Stage->SetStartTimeCode(1.0);
-    S_Stage->SetEndTimeCode(GetTime());
+    S_Stage->SetEndTimeCode(World::GetTime());
     S_Stage->Save();
+    S_Mutex.unlock();
+
+    Client::send<SceneResetEvent>();
 }
 
 void dt::World::ExportStage(const std::string &path)
 {
     log::event("Exporting current stage to '{}'", path);
-    std::lock_guard guard(S_Mutex);
+
+    S_Mutex.lock();
     S_Stage->SetFramesPerSecond(144.0);
     S_Stage->SetTimeCodesPerSecond(1.0);
     S_Stage->SetStartTimeCode(1.0);
-    S_Stage->SetEndTimeCode(GetTime());
+    S_Stage->SetEndTimeCode(World::GetTime());
     S_Stage->Export(path);
+    S_Mutex.unlock();
+
+    Client::send<SceneResetEvent>();
 }
 
 auto dt::World::DefaultStage() -> pxr::UsdStageRefPtr

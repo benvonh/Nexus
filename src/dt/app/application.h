@@ -15,16 +15,16 @@ namespace dt
 
         ~Application();
 
-        void SpinThread();
+        void spin_thread();
 
-        void MainLoop();
+        void main_loop();
 
     private:
-        void _Exec_ROS();
-        void _Throw_from_ROS();
+        void exec_ros();
+        void throw_from_ros();
 
-        std::mutex _Mutex;
-        std::jthread _Thread;
-        std::exception_ptr _Exception;
+        std::mutex M_Mutex;
+        std::jthread M_Thread;
+        std::exception_ptr M_Exception;
     };
 }

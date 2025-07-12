@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 #ifdef _DEBUG
     dt::Application app(argc, argv);
 
-    app.MainLoop();
+    app.main_loop();
 #else
     try
     {

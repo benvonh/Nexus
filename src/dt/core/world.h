@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dt/core/permit.h"
+#include "dt/event/client.h"
 
 #include "pxr/usd/usd/stage.h"
 
@@ -10,7 +11,7 @@
 
 namespace dt
 {
-    class World
+    class World : Client
     {
     public:
         World() = delete;

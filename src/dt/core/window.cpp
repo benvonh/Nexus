@@ -31,6 +31,8 @@ dt::Window::Window()
     SDL_DO(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                                SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
 
+    log::debug("Creating SDL window...");
+
 #ifdef _DEBUG
     const char *windowTitle = "Digital Twin (Debug)";
 #else
@@ -44,6 +46,8 @@ dt::Window::Window()
     constexpr auto windowCenter = SDL_WINDOWPOS_CENTERED;
     SDL_DO(SDL_SetWindowPosition(M_Window, windowCenter, windowCenter));
 
+    log::debug("Creating OpenGL context...");
+
     M_Context = SDL_GL_CreateContext(M_Window);
     SDL_ASSERT(M_Context != nullptr);
     SDL_DO(SDL_GL_MakeCurrent(M_Window, M_Context));
@@ -54,23 +58,26 @@ dt::Window::Window()
         [this](const ViewportCaptureEvent &e)
         {
             log::debug("Viewport capture = {}", e.Capture);
+
             ImGuiIO &io = ImGui::GetIO();
+
             M_InViewport = e.Capture;
 
             if (e.Capture)
             {
-                SDL_SetWindowRelativeMouseMode(M_Window, true);
+                SDL_DO(SDL_SetWindowRelativeMouseMode(M_Window, true));
+
                 io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
             }
             else
             {
                 const float mouseX = io.DisplaySize.x / 2;
                 const float mouseY = io.DisplaySize.y / 2;
+
                 SDL_WarpMouseInWindow(M_Window, mouseX, mouseY);
                 SDL_DO(SDL_SetWindowRelativeMouseMode(M_Window, false));
+
                 io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-                // SDL_PumpEvents();
-                // SDL_FlushEvents(SDL_EVENT_FIRST, SDL_EVENT_LAST);
             }
         });
 }
@@ -105,7 +112,6 @@ void dt::Window::start_frame()
 {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
-
     ImGui::NewFrame();
     ImGui::DockSpaceOverViewport();
     ImGui::ShowDemoWindow(&M_ShowDemo);
@@ -113,34 +119,29 @@ void dt::Window::start_frame()
 
 void dt::Window::finish_frame()
 {
-    ImGui::Render();
-
     const ImGuiIO &io = ImGui::GetIO();
-
+    ImGui::Render();
     glViewport(0, 0, (int)io.DisplaySize.x, (int)io.DisplaySize.y);
     glClearColor(0, 0, 0, 0);
     glClear(GL_COLOR_BUFFER_BIT);
-
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
     SDL_DO(SDL_GL_SwapWindow(M_Window));
 }
 
 void dt::Window::process_events()
 {
-    ImGuiIO &io = ImGui::GetIO();
+    const ImGuiIO &io = ImGui::GetIO();
 
-    SDL_Event event;
-
+    // NOTE(Ben): I admit defeat in trying to fix the bug
+    // where the first mouse click (left as to capture viewport mode)
+    // is not registered by SDL. A second click is needed for ImGUI to
+    // react properly again.
     if (M_InViewport)
     {
-        // while (SDL_PollEvent(&event))
-        // {
-        //     ImGui_ImplSDL3_ProcessEvent(&event);
-        // }
+        SDL_PumpEvents();
 
         float x, y;
-        SDL_GetRelativeMouseState(&x, &y);
+        auto state = SDL_GetRelativeMouseState(&x, &y);
         this->send<MouseEvent>(x, y, io.DeltaTime);
 
         const bool *keyboard = SDL_GetKeyboardState(nullptr);
@@ -148,6 +149,8 @@ void dt::Window::process_events()
     }
     else
     {
+        SDL_Event event;
+
         while (SDL_PollEvent(&event))
         {
             if (event.type == SDL_EVENT_QUIT ||
@@ -158,20 +161,14 @@ void dt::Window::process_events()
                 return;
             }
 
-            if (ImGui_ImplSDL3_ProcessEvent(&event))
-                // continue;
-
-                if (event.type == SDL_EVENT_KEY_DOWN &&
-                    event.key.scancode == SDL_SCANCODE_W)
-                {
-                    log::event("W");
-                }
+            ImGui_ImplSDL3_ProcessEvent(&event);
         }
     }
 }
 
 void dt::Window::create_layer()
 {
+    log::debug("Creating ImGUI layer...");
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     CHECK(ImGui_ImplOpenGL3_Init("#version 460 core"), std::runtime_error);
@@ -194,6 +191,7 @@ void dt::Window::create_layer()
 
 void dt::Window::destroy_layer()
 {
+    log::debug("Destroying ImGUI layer...");
     ImGui_ImplSDL3_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();

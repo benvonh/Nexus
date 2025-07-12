@@ -3,6 +3,7 @@
 #include "dt/core/world.h"
 #include "dt/event/keyboard_event.h"
 #include "dt/event/mouse_event.h"
+#include "dt/event/scene_reset_event.h"
 #include "dt/event/viewport_capture_event.h"
 #include "dt/logging.h"
 
@@ -36,9 +37,7 @@ dt::Viewports::Viewports()
     M_RenderNames[0] = "USD Viewport";
 
     for (size_t i = 1; i < M_Renders.size(); i++)
-    {
         M_RenderNames[i] = std::format("USD Viewport (#{})", i + 1);
-    }
 
     log::debug("Initialized {} USD rendering engines", M_Renders.size());
 
@@ -85,15 +84,65 @@ dt::Viewports::Viewports()
                 M_Captured = -1;
             }
         });
+
+    this->on<SceneResetEvent>(
+        [this](const SceneResetEvent &)
+        {
+            log::debug("Refreshing camera paths...");
+            this->refresh_camera_paths();
+            M_Renders[0].reset();
+            M_Active = 1;
+        });
 }
 
 void dt::Viewports::draw()
 {
     for (size_t i = 0; i < M_Active; i++)
-    {
         this->draw_render(i);
-        this->draw_static_render_controller();
-        this->draw_static_render_parameter();
+
+    this->draw_main_menu();
+    this->draw_static_render_controller();
+    this->draw_static_render_parameter();
+}
+
+void dt::Viewports::draw_main_menu()
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("Viewports"))
+        {
+            ImGui::Text("Active: %zu/%zu", M_Active, M_Renders.size());
+
+            if (ImGui::Button("Add"))
+            {
+                if (M_Active < M_Renders.size())
+                {
+                    M_Active++;
+                    M_Renders[M_Active - 1].reset();
+                }
+                else
+                {
+                    log::alert("Cannot add anymore render viewports!");
+                }
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Remove"))
+            {
+                if (M_Active > 1)
+                {
+                    M_Active--;
+                }
+                else
+                {
+                    log::alert("Must have at least one render viewport!");
+                }
+            }
+
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
     }
 }
 
@@ -101,15 +150,12 @@ void dt::Viewports::draw_render(size_t index)
 {
     Render &render = M_Renders[index];
 
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{});
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2());
 
     if (ImGui::Begin(M_RenderNames[index].c_str(), nullptr, ImGuiWindowFlags_MenuBar))
     {
         ImGui::PopStyleVar();
 
-        /*****************
-         * SHOW MENU BAR *
-         *****************/
         if (ImGui::BeginMenuBar())
         {
             if (ImGui::BeginMenu("Options"))
@@ -187,7 +233,7 @@ void dt::Viewports::draw_render(size_t index)
         ImGui::SetCursorPos(offset);
         ImGui::Image(render(), size, ImVec2(0, 1), ImVec2(1, 0));
 
-        if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
+        if (ImGui::IsItemClicked(0))
         {
             M_Captured = index;
 
@@ -209,33 +255,33 @@ void dt::Viewports::draw_render_menu(Render &render)
 {
     if (ImGui::BeginMenu("Parameter"))
     {
-        ImGui::Checkbox("Lighting", &render.PARAMS.enableLighting);
-        ImGui::Checkbox("Scene Lights", &render.PARAMS.enableSceneLights);
-        ImGui::Checkbox("Scene Materials", &render.PARAMS.enableSceneMaterials);
-        ImGui::Checkbox("Show Guides", &render.PARAMS.showGuides);
-        ImGui::Checkbox("Show Proxy", &render.PARAMS.showProxy);
-        ImGui::Checkbox("Show Render", &render.PARAMS.showRender);
-        ImGui::Checkbox("Force Refresh", &render.PARAMS.forceRefresh);
-        ImGui::Checkbox("Sample Alpha to Coverage", &render.PARAMS.enableSampleAlphaToCoverage);
-        ImGui::Checkbox("Gamma Correct Colors", &render.PARAMS.gammaCorrectColors);
-        ImGui::ColorEdit4("Clear Color", &render.PARAMS.clearColor[0]);
-        ImGui::SliderFloat("Complexity", &render.PARAMS.complexity, 1.f, 1.5f, "%.1f");
-        ImGui::Combo("Draw Mode", (int *)&render.PARAMS.drawMode, DRAW_MODES, std::size(DRAW_MODES));
-        ImGui::Combo("Cull Style", (int *)&render.PARAMS.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
-        ImGui::Checkbox("Live Playback", &render.LIVE);
+        ImGui::Checkbox("Lighting", &render.Params.enableLighting);
+        ImGui::Checkbox("Scene Lights", &render.Params.enableSceneLights);
+        ImGui::Checkbox("Scene Materials", &render.Params.enableSceneMaterials);
+        ImGui::Checkbox("Show Guides", &render.Params.showGuides);
+        ImGui::Checkbox("Show Proxy", &render.Params.showProxy);
+        ImGui::Checkbox("Show Render", &render.Params.showRender);
+        ImGui::Checkbox("Force Refresh", &render.Params.forceRefresh);
+        ImGui::Checkbox("Sample Alpha to Coverage", &render.Params.enableSampleAlphaToCoverage);
+        ImGui::Checkbox("Gamma Correct Colors", &render.Params.gammaCorrectColors);
+        ImGui::ColorEdit4("Clear Color", &render.Params.clearColor[0]);
+        ImGui::SliderFloat("Complexity", &render.Params.complexity, 1.f, 1.5f, "%.1f");
+        ImGui::Combo("Draw Mode", (int *)&render.Params.drawMode, DRAW_MODES, std::size(DRAW_MODES));
+        ImGui::Combo("Cull Style", (int *)&render.Params.cullStyle, CULL_STYLES, std::size(CULL_STYLES));
+        ImGui::Checkbox("Live Playback", &render.Live);
 
-        if (render.LIVE)
+        if (render.Live)
         {
-            render.TIME = render.LATEST;
+            render.Time = render.LATEST;
             render.LATEST = World::GetTime();
         }
 
-        if (ImGui::SliderFloat("Time Code", &render.TIME, 0.f, render.LATEST))
+        if (ImGui::SliderFloat("Time Code", &render.Time, 0.f, render.LATEST))
         {
             render.LIVE = false;
         }
 
-        render.PARAMS.frame = render.TIME;
+        render.Params.frame = render.Time;
 
         ImGui::EndMenu();
     }
@@ -285,7 +331,6 @@ void dt::Viewports::draw_static_render_parameter()
     ImGui::End();
 }
 
-// TODO: Use events instaed of checking every frame
 void dt::Viewports::refresh_camera_paths()
 {
     unsigned hits = 0;

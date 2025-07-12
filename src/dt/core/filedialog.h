@@ -19,7 +19,7 @@ namespace dt
         ~FileDialog() noexcept(false);
 
         static constexpr SDL_DialogFileFilter USD_FILTER[] = {
-            {"USD Files", "usd;usda;usdc;usdz"}};
+            {"USD", "usd;usda;usdc;usdz"}};
 
         static constexpr SDL_DialogFileFilter IMAGE_FILTER[] = {
             {"PNG", "png"},

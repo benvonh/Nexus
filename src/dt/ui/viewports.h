@@ -22,9 +22,9 @@ namespace dt
 
         void draw();
 
-        void reset();
-
     private:
+        void draw_main_menu();
+
         void draw_render(size_t index);
 
         void draw_render_menu(Render &render);
