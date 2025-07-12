@@ -1,5 +1,9 @@
 # Digital Twin
 
+A simple application to interact with ROS2 using the Universal Scene Description.
+
+[First Primitive Demo](./media/Light%20Demo.mp4)
+
 ## Installation
 
 ### Dependency
