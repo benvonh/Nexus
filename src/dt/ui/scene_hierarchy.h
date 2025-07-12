@@ -20,6 +20,7 @@ namespace dt
 
             const auto range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
 
+			// TODO: Can this be optimized? My head hurts.
             for (auto it = range.cbegin(); it != range.cend(); it++)
             {
                 if (it.IsPostVisit())
@@ -31,7 +32,7 @@ namespace dt
                 }
                 else
                 {
-                    if (ImGui::TreeNode(it->GetPath().GetText()))
+                    if (ImGui::TreeNode(it->GetPath().GetName().c_str()))
                     {
                         treeStack |= (1ULL << treeDepth);
                     }

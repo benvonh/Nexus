@@ -128,6 +128,10 @@ set(SOURCE
   
   src/dt/event/client.h
   src/dt/event/event.h
+  src/dt/event/keyboard_event.h
+  src/dt/event/mouse_event.h
+  src/dt/event/scene_reset_event.h
+  src/dt/event/viewport_capture_event.h
   
   src/dt/render/controller.cpp
   src/dt/render/controller.h
@@ -136,11 +140,11 @@ set(SOURCE
   src/dt/render/render.h
   
   src/dt/ui/log_history.h
+  src/dt/ui/menu_bar.h
   src/dt/ui/scene_hierarchy.h
   src/dt/ui/viewports.cpp
   src/dt/ui/viewports.h
-  src/dt/utility.h
-  
+
   src/dt/exception.h
   src/dt/logging.h
   src/dt/types.h

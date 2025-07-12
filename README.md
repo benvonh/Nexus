@@ -23,7 +23,7 @@ pixi install
 
 5. Install OpenUSD from **Developer Command Prompt for VS 2022 Preview**
 
-    - For a less cluttered namespace, edit `pxr/pxr.h.in` to make `PXR_INTERNAL_NS` the same as `PXR_NS`.
+    - For a less cluttered namespace, edit `pxr/pxr.h.in` and set `PXR_INTERNAL_NS` the same as `PXR_NS`.
     - Due to GREAT difficulty configuring OpenUSD from CMake, you must choose either release or debug and stick to it.
 
 ```ps
@@ -50,14 +50,14 @@ vcpkg integrate install
 
 ### Verify Setup
 
-- ROS2 in Command Prompt
+- ROS2
 
 ```ps
 call C:\pixi_ws\ros2-windows\setup.bat
 ros2 topic list
 ```
 
-- OpenUSD in any terminal
+- OpenUSD
 
 ```ps
 cd C:\pixi_ws
@@ -78,7 +78,7 @@ cmake --build . --target app --config Release -- /m
 .\Release\app.exe
 ```
 
-If you are too lazy, simply execute the scripts in order of configure -> build -> run.
+Scripts are also provided which can be called from anywhere.
 
 ## Notes
 
@@ -93,12 +93,18 @@ devenv           # Visual Studio
 code DigitalTwin # Visual Studio Code
 ```
 
-2. Due to immense difficulty in configuring OpenUSD through CMake (Visual Studio multi-config), a single config must be specified. To change later, delete `C:\pixi_ws\usd` and build from scratch again.
+2. Due to immense difficulty in configuring OpenUSD through CMake (Visual Studio multi-config), a single config must be specified. To change later, delete `C:\pixi_ws\usd` and build from scratch again. I'm not sure of the proper way to do this at the moment.
 
-3. Linking against OpenUSD as a static library on Windows does NOT currently work. The default is shared, however. See https://github.com/PixarAnimationStudios/OpenUSD/issues/3079.
+3. Linking against OpenUSD as a static library on Windows does NOT currently work. The default is shared. See https://github.com/PixarAnimationStudios/OpenUSD/issues/3079.
 
 ## Roadmap
 
+- Showcase with Franka Panda
+    - Even try running simple RL on it
 - Implement live editing of properties and prims
 - Switch to more advanced rendering like https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
+    - Also looked at Autodesks's Aurora
+    - Seems like nothing really works out the box so put on hold
+
 - Investigate how to do VR imaging
+    - Need to look at ALVR, OpenXR
