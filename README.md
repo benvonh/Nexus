@@ -108,3 +108,13 @@ code DigitalTwin # Visual Studio Code
 
 - Investigate how to do VR imaging
     - Need to look at ALVR, OpenXR
+
+## Third Party Software
+
+- OpenUSD
+- ROS2
+- SDL3
+- Dear ImGui
+- Assimp
+- STB
+- Termcolor
