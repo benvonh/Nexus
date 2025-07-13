@@ -35,6 +35,7 @@ void dt::Application::main_loop()
     Window window;
     Viewports viewports;
     FileDialog fileDialog(*window);
+    SceneHierarchy sceneHierarchy;
 
     while (window)
     {
@@ -44,9 +45,9 @@ void dt::Application::main_loop()
 
             draw_menu_bar();
             draw_log_history();
-            draw_scene_hierarchy();
 
             viewports.draw();
+            sceneHierarchy.draw();
 
             window.finish_frame();
             window.process_events();

@@ -2,7 +2,7 @@
 
 A simple application to interact with ROS2 using the Universal Scene Description.
 
-![First Primitive Demo](./media/test.gif)
+![First Primitive Demo](./docs/media/test.gif)
 
 ## Installation
 
@@ -109,7 +109,6 @@ code DigitalTwin # Visual Studio Code
 - Switch to more advanced rendering like https://github.com/GPUOpen-LibrariesAndSDKs/RadeonProRenderUSD
     - Also looked at Autodesks's Aurora
     - Seems like nothing really works out the box so put on hold
-
 - Investigate how to do VR imaging
     - Need to look at ALVR, OpenXR
 

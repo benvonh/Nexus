@@ -1,50 +1,22 @@
 #pragma once
 
-#include "dt/logging.h"
-#include "dt/core/world.h"
+#include "dt/event/client.h"
 
+#include "pxr/usd/sdf/path.h"
 #include "pxr/usd/usd/primRange.h"
-
-#include "imgui.h"
 
 namespace dt
 {
-    void draw_scene_hierarchy()
+    class SceneHierarchy : Client
     {
-        if (ImGui::Begin("Scene Hierarchy"))
-        {
-            uint8_t treeDepth = 0;
-            uint64_t treeStack = 0;
+    public:
+        SceneHierarchy();
 
-            auto [stage, _] = World::GetStagePermit();
+        void draw();
 
-            const auto range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
+    private:
+        size_t M_ContextHash = 0;
 
-			// TODO: Can this be optimized? My head hurts.
-            for (auto it = range.cbegin(); it != range.cend(); it++)
-            {
-                if (it.IsPostVisit())
-                {
-                    if (treeStack & (1ULL << --treeDepth))
-                    {
-                        ImGui::TreePop();
-                    }
-                }
-                else
-                {
-                    if (ImGui::TreeNode(it->GetPath().GetName().c_str()))
-                    {
-                        treeStack |= (1ULL << treeDepth);
-                    }
-                    else
-                    {
-                        treeStack &= ~(1ULL << treeDepth);
-                        it.PruneChildren();
-                    }
-                    treeDepth++;
-                }
-            }
-        }
-        ImGui::End();
-    }
+        pxr::UsdPrimRange M_Range;
+    };
 }
