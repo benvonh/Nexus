@@ -20,7 +20,7 @@ namespace dt
         using Callback = std::function<void(const Event &)>;
 
     public:
-        static void dispatch()
+        static void Dispatch()
         {
             S_Mutex.lock();
 
@@ -35,7 +35,7 @@ namespace dt
         }
 
     protected:
-        static void queue(std::function<void()> &&fn)
+        static void Queue(std::function<void()> &&fn)
         {
             S_Mutex.lock();
             S_Queue.emplace(std::move(fn));
@@ -43,7 +43,7 @@ namespace dt
         }
 
         template <typename T, typename F>
-        static void on(F &&fn)
+        static void On(F &&fn)
         {
             const auto index = std::type_index(typeid(T));
 
@@ -63,7 +63,7 @@ namespace dt
         }
 
         template <typename T, typename... Args>
-        static void send(Args &&...args)
+        static void Send(Args &&...args)
         {
             const auto index = std::type_index(typeid(T));
 

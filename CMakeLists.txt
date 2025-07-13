@@ -116,7 +116,6 @@ set(SOURCE
   src/dt/app/application.cpp
   src/dt/app/application.h
   
-  src/dt/core/filedialog.cpp
   src/dt/core/filedialog.h
   src/dt/core/permit.h
   src/dt/core/window.cpp

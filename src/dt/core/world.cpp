@@ -22,7 +22,7 @@ void dt::World::NewStage(const std::string &path)
 
     S_Mutex.unlock();
 
-    Client::send<SceneResetEvent>();
+    Client::Send<SceneResetEvent>();
 }
 
 void dt::World::OpenStage(const std::string &path)
@@ -33,7 +33,7 @@ void dt::World::OpenStage(const std::string &path)
     S_Stage = pxr::UsdStage::Open(path);
     S_Mutex.unlock();
 
-    Client::send<SceneResetEvent>();
+    Client::Send<SceneResetEvent>();
 }
 
 void dt::World::SaveStage()
@@ -48,7 +48,7 @@ void dt::World::SaveStage()
     S_Stage->Save();
     S_Mutex.unlock();
 
-    Client::send<SceneResetEvent>();
+    Client::Send<SceneResetEvent>();
 }
 
 void dt::World::ExportStage(const std::string &path)
@@ -63,7 +63,7 @@ void dt::World::ExportStage(const std::string &path)
     S_Stage->Export(path);
     S_Mutex.unlock();
 
-    Client::send<SceneResetEvent>();
+    Client::Send<SceneResetEvent>();
 }
 
 auto dt::World::DefaultStage() -> pxr::UsdStageRefPtr

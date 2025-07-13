@@ -54,7 +54,7 @@ dt::Window::Window()
     SDL_DO(SDL_GL_SetSwapInterval(1));
 
     this->create_layer();
-    this->on<ViewportCaptureEvent>(
+    Client::On<ViewportCaptureEvent>(
         [this](const ViewportCaptureEvent &e)
         {
             log::debug("Viewport capture = {}", e.Capture);
@@ -93,10 +93,18 @@ dt::Window::~Window() noexcept(false)
 void dt::Window::show_exception(const Exception &e)
 {
     log::debug("Displaying exception in message box...");
-    this->send<ViewportCaptureEvent>(false);
+
+    // Log exception as well in case thrower didn't
+    log::error(": {}", e.what());
+
+    // We don't want to be stuck in here if an exception is thrown
+    Client::Send<ViewportCaptureEvent>(false);
+
     const auto flag = SDL_MESSAGEBOX_ERROR;
     const char *title = "Oops! An error occurred...";
     SDL_DO(SDL_ShowSimpleMessageBox(flag, title, e.what(), M_Window));
+
+    // Reset the ImGui layer to avoid invaild states
     this->destroy_layer();
     this->create_layer();
 }
@@ -142,10 +150,10 @@ void dt::Window::process_events()
 
         float x, y;
         auto state = SDL_GetRelativeMouseState(&x, &y);
-        this->send<MouseEvent>(x, y, io.DeltaTime);
+        Client::Send<MouseEvent>(x, y, io.DeltaTime);
 
         const bool *keyboard = SDL_GetKeyboardState(nullptr);
-        this->send<KeyboardEvent>(keyboard, io.DeltaTime);
+        Client::Send<KeyboardEvent>(keyboard, io.DeltaTime);
     }
     else
     {

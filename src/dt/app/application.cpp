@@ -51,7 +51,7 @@ void dt::Application::main_loop()
             window.finish_frame();
             window.process_events();
 
-            Client::dispatch();
+            Client::Dispatch();
 
             throw_from_ros();
         }

@@ -1,5 +1,6 @@
 #include "viewports.h"
 
+#include "dt/core/filedialog.h"
 #include "dt/core/world.h"
 #include "dt/event/keyboard_event.h"
 #include "dt/event/mouse_event.h"
@@ -12,7 +13,13 @@
 #include "pxr/usd/usd/primRange.h"
 #include "pxr/usd/usdGeom/camera.h"
 
+#include "SDL3/SDL_opengl.h"
+
+#include "stb_image_write.h"
+
 #include "imgui.h"
+
+#include <format>
 
 const char *DRAW_MODES[] = {
     "Points",
@@ -33,21 +40,21 @@ const char *CULL_STYLES[] = {
 
 dt::Viewports::Viewports()
 {
+    log::debug("Initializing {} USD renderers...", M_Renders.size());
+
     M_Renders[0].reset();
     M_RenderNames[0] = "USD Viewport";
 
     for (size_t i = 1; i < M_Renders.size(); i++)
         M_RenderNames[i] = std::format("USD Viewport (#{})", i + 1);
 
-    log::debug("Initialized {} USD rendering engines", M_Renders.size());
-
-    this->on<MouseEvent>(
+    Client::On<MouseEvent>(
         [this](const MouseEvent &e)
         {
             M_Renders[M_Captured].look(e.X, e.Y, e.Tick);
         });
 
-    this->on<KeyboardEvent>(
+    Client::On<KeyboardEvent>(
         [this](const KeyboardEvent &e)
         {
             Render &render = M_Renders[M_Captured];
@@ -80,12 +87,12 @@ dt::Viewports::Viewports()
             }
             if (e.Keys[SDL_SCANCODE_ESCAPE])
             {
-                this->send<ViewportCaptureEvent>(false);
+                Client::Send<ViewportCaptureEvent>(false);
                 M_Captured = -1;
             }
         });
 
-    this->on<SceneResetEvent>(
+    Client::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
         {
             log::debug("Refreshing camera paths...");
@@ -119,10 +126,11 @@ void dt::Viewports::draw_main_menu()
                 {
                     M_Active++;
                     M_Renders[M_Active - 1].reset();
+                    log::event("Added {}", M_RenderNames[M_Active - 1]);
                 }
                 else
                 {
-                    log::alert("Cannot add anymore render viewports!");
+                    log::alert("Cannot add any more render viewports!");
                 }
             }
 
@@ -133,6 +141,7 @@ void dt::Viewports::draw_main_menu()
                 if (M_Active > 1)
                 {
                     M_Active--;
+                    log::event("Removed {}", M_RenderNames[M_Active]);
                 }
                 else
                 {
@@ -160,14 +169,60 @@ void dt::Viewports::draw_render(size_t index)
         {
             if (ImGui::BeginMenu("Options"))
             {
-                if (ImGui::MenuItem("Save render as image"))
+                if (ImGui::MenuItem("Save as image"))
                 {
-                    // auto handler = NewPtr<FileHandler>(render.Size[0], _Size[1]);
-                    // glBindTexture(GLrender.TEXTURE_2D, get_texture());
-                    // glPixelStorei(GLrender.PACK_ALIGNMENT, 1);
-                    // glGetTexImage(GLrender.TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, handler->Pixels.data());
-                    // glBindTexture(GLrender.TEXTURE_2D, 0);
-                    // FileDialog::Show<FileDialog::Mode::SAVE>(std::move(handler), FileDialog::IMAGErender.FILTER);
+                    int width = render.Size[0];
+                    int height = render.Size[1];
+
+                    std::vector<unsigned char> pixels(width * height * 3);
+
+                    glBindTexture(GL_TEXTURE_2D, render.get_texture());
+                    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+                    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
+                    glBindTexture(GL_TEXTURE_2D, 0);
+
+                    FileDialog::Show<FileDialog::Mode::SAVE, FileDialog::Option::WITHIN_SDL_THREAD>(
+                        [pixels = std::move(pixels), width, height](std::string path, int filter)
+                        {
+                            const auto f = std::format("{}.{}", path, FileDialog::IMAGE_FILTER[filter].pattern);
+
+                            log::event("Saving rendered image ({}x{}) to '{}'", width, height, f);
+
+                            stbi_flip_vertically_on_write(1);
+
+                            switch (filter)
+                            {
+                            case FileDialog::ImageFormat::PNG:
+                                if (!stbi_write_png(f.c_str(), width, height, 3, pixels.data(), width * 3))
+                                    throw exception("Error saving as PNG");
+                                // log::error("Error saving as PNG");
+                                break;
+                            case FileDialog::ImageFormat::BMP:
+                                if (!stbi_write_bmp(f.c_str(), width, height, 3, pixels.data()))
+                                    throw exception("Error saving as BMP");
+                                // log::error("Error saving as BMP");
+                                break;
+                            case FileDialog::ImageFormat::TGA:
+                                if (!stbi_write_tga(f.c_str(), width, height, 3, pixels.data()))
+                                    throw exception("Error saving as TGA");
+                                // log::error("Error saving as TGA");
+                                break;
+                            case FileDialog::ImageFormat::JPG:
+                                if (!stbi_write_jpg(f.c_str(), width, height, 3, pixels.data(), 100))
+                                    throw exception("Error saving as JPG");
+                                // log::error("Error saving as JPG");
+                                break;
+                            case FileDialog::ImageFormat::HDR:
+                                log::alert("Saving as HDR is not supported yet!");
+                                // TODO: Casting char to float is not a good idea
+                                // if (!stbi_write_hdr(f.c_str(), Width, Height, STRIDE, reinterpret_cast<float *>(Pixels.data())));
+                                //     log::error("Error saving as HDR");
+                                break;
+                            default:
+                                log::error("Unknown image format (filter={})", filter);
+                            }
+                        },
+                        FileDialog::IMAGE_FILTER);
                 }
 
                 if (ImGui::InputInt2("Resolution", &render.Size[0]))
@@ -181,6 +236,7 @@ void dt::Viewports::draw_render(size_t index)
 
                 if (ImGui::Combo("Camera Path", (int *)&M_CameraIndices[index], get_path, (void *)M_CameraPaths.data(), M_CameraPaths.size()))
                 {
+                    log::event("Changed camera path for {} to {}", M_RenderNames[index].c_str(), M_CameraPaths[M_CameraIndices[index]].GetText());
                     render.set_camera_path(M_CameraPaths[M_CameraIndices[index]]);
                     render.FreeCamera = false;
                 }
@@ -241,7 +297,7 @@ void dt::Viewports::draw_render(size_t index)
                 render.transform_to_camera();
 
             render.FreeCamera = true;
-            this->send<ViewportCaptureEvent>(true);
+            Client::Send<ViewportCaptureEvent>(true);
         }
     }
     else
