@@ -2,7 +2,6 @@
 
 #include "dt/event/client.h"
 
-#include "pxr/usd/sdf/path.h"
 #include "pxr/usd/usd/primRange.h"
 
 namespace dt

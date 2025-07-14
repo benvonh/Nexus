@@ -140,10 +140,13 @@ set(SOURCE
   
   src/dt/ui/log_history.h
   src/dt/ui/menu_bar.h
+  src/dt/ui/property.cpp
+  src/dt/ui/property.h
   src/dt/ui/scene_hierarchy.cpp
   src/dt/ui/scene_hierarchy.h
   src/dt/ui/viewports.cpp
   src/dt/ui/viewports.h
+
 
   src/dt/exception.h
   src/dt/logging.h

@@ -8,6 +8,7 @@
 #include "dt/render/render.h"
 #include "dt/ui/log_history.h"
 #include "dt/ui/menu_bar.h"
+#include "dt/ui/property.h"
 #include "dt/ui/scene_hierarchy.h"
 #include "dt/ui/viewports.h"
 
@@ -33,8 +34,10 @@ void dt::Application::spin_thread()
 void dt::Application::main_loop()
 {
     Window window;
-    Viewports viewports;
     FileDialog fileDialog(*window);
+
+    Property property;
+    Viewports viewports;
     SceneHierarchy sceneHierarchy;
 
     while (window)
@@ -46,6 +49,7 @@ void dt::Application::main_loop()
             draw_menu_bar();
             draw_log_history();
 
+            property.draw();
             viewports.draw();
             sceneHierarchy.draw();
 

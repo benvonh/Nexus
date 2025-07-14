@@ -1,5 +1,6 @@
 #include "scene_hierarchy.h"
 
+#include "dt/event/context_change_event.h"
 #include "dt/event/scene_reset_event.h"
 
 #include "dt/core/world.h"
@@ -14,9 +15,6 @@ constexpr auto BASE_FLAGS = ImGuiTreeNodeFlags_OpenOnArrow |
 
 dt::SceneHierarchy::SceneHierarchy()
 {
-    auto [stage, _] = World::GetStagePermit();
-    M_Range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
-
     Client::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
         {
@@ -24,6 +22,9 @@ dt::SceneHierarchy::SceneHierarchy()
             auto [stage, _] = World::GetStagePermit();
             M_Range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
         });
+
+    auto [stage, _] = World::GetStagePermit();
+    M_Range = pxr::UsdPrimRange::PreAndPostVisit(stage->GetPseudoRoot());
 }
 
 void dt::SceneHierarchy::draw()
@@ -57,8 +58,8 @@ void dt::SceneHierarchy::draw()
 
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
                 {
-                    log::event("Selected: {}", it->GetPath().GetText());
                     M_ContextHash = flags & ImGuiTreeNodeFlags_Selected ? 0 : it->GetPath().GetHash();
+                    Client::Send<ContextChangeEvent>(it->GetPrim());
                 }
 
                 if (open)
@@ -82,8 +83,8 @@ void dt::SceneHierarchy::draw()
 
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
                 {
-                    log::event("Selected: {}", it->GetPath().GetText());
                     M_ContextHash = flags & ImGuiTreeNodeFlags_Selected ? 0 : it->GetPath().GetHash();
+                    Client::Send<ContextChangeEvent>(it->GetPrim());
                 }
                 treeStack &= ~bit<uint64_t>(treeDepth++);
             }
