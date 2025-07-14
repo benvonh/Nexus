@@ -1,8 +1,8 @@
 # Digital Twin
 
-A simple application to interact with ROS2 using the Universal Scene Description.
+A simple application to interact with ROS2 through the Universal Scene Description.
 
-![First Primitive Demo](./docs/media/test.gif)
+https://github.com/user-attachments/assets/d0448d48-7468-44f2-b7b0-418af48c90fa
 
 ## Installation
 
