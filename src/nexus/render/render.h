@@ -15,8 +15,6 @@ namespace Nexus
         using Engine = pxr::UsdImagingGLEngine;
 
     public:
-        ~Render();
-
         [[nodiscard]]
         unsigned operator()();
 
@@ -26,10 +24,9 @@ namespace Nexus
 
         void update_size();
 
-        void transform_to_camera();
+        void delete_engine();
 
-    private:
-        void _delete_engine();
+        void transform_to_camera();
 
     public:
         pxr::SdfPath CameraPath;

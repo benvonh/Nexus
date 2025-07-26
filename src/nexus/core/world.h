@@ -12,7 +12,7 @@
 
 namespace Nexus
 {
-    class World : Logger<"World">
+    class World : LOGGER(World)
     {
     public:
         World() = delete;

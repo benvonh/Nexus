@@ -6,10 +6,10 @@
 
 namespace Nexus
 {
-    class Property : Logger<"Property Panel">
+    class PrimProperty : Logger<"Prim Property">
     {
     public:
-        Property();
+        PrimProperty();
 
         void draw();
 

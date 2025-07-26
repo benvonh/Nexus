@@ -1,6 +1,7 @@
-#include "viewports.h"
+#include "multi_viewport.h"
 
 #include "nexus/core/world.h"
+#include "nexus/event/client.h"
 #include "nexus/event/keyboard_event.h"
 #include "nexus/event/mouse_event.h"
 #include "nexus/event/scene_reset_event.h"
@@ -38,7 +39,7 @@ const char *CULL_STYLES[] = {
     "Front",
     "Back Unless Double-Sided"};
 
-Nexus::Viewports::Viewports()
+Nexus::MultiViewport::MultiViewport()
 {
     LOG_BASIC("Initializing {} USD renderers...", m_Renders.size());
 
@@ -100,14 +101,20 @@ Nexus::Viewports::Viewports()
         });
 }
 
-void Nexus::Viewports::ready()
+void Nexus::MultiViewport::start_engine()
 {
     m_Renders[0].reset();
 }
 
-void Nexus::Viewports::draw()
+void Nexus::MultiViewport::stop_engine()
 {
-    for (std::size_t i = 0; i < m_Active; i++)
+    for (auto &render : m_Renders)
+        render.delete_engine();
+}
+
+void Nexus::MultiViewport::draw()
+{
+    for (std::size_t i = 0; i < m_Active; ++i)
         _draw_render(i);
 
     _draw_main_menu();
@@ -115,11 +122,11 @@ void Nexus::Viewports::draw()
     _draw_static_render_parameter();
 }
 
-void Nexus::Viewports::_draw_main_menu()
+void Nexus::MultiViewport::_draw_main_menu()
 {
     if (ImGui::BeginMainMenuBar())
     {
-        if (ImGui::BeginMenu("Viewports"))
+        if (ImGui::BeginMenu("MultiViewport"))
         {
             ImGui::Text("Active: %zu/%zu", m_Active, m_Renders.size());
 
@@ -158,7 +165,7 @@ void Nexus::Viewports::_draw_main_menu()
     }
 }
 
-void Nexus::Viewports::_draw_render(size_t index)
+void Nexus::MultiViewport::_draw_render(size_t index)
 {
     Render &render = m_Renders[index];
 
@@ -237,7 +244,9 @@ void Nexus::Viewports::_draw_render(size_t index)
 
                 if (ImGui::Combo("Camera Path", (int *)&m_CameraIndices[index], get_path, (void *)m_CameraPaths.data(), m_CameraPaths.size()))
                 {
-                    LOG_EVENT("Changed camera path for {} to {}", m_RenderNames[index].c_str(), m_CameraPaths[m_CameraIndices[index]].GetText());
+                    LOG_EVENT("Changed camera path for {} to {}",
+                              m_RenderNames[index].c_str(),
+                              m_CameraPaths[m_CameraIndices[index]].GetText());
                     render.CameraPath = m_CameraPaths[m_CameraIndices[index]];
                     render.FreeCamera = false;
                 }
@@ -308,7 +317,7 @@ void Nexus::Viewports::_draw_render(size_t index)
     ImGui::End();
 }
 
-void Nexus::Viewports::_draw_render_menu(Render &render)
+void Nexus::MultiViewport::_draw_render_menu(Render &render)
 {
     if (ImGui::BeginMenu("Parameter"))
     {
@@ -344,7 +353,7 @@ void Nexus::Viewports::_draw_render_menu(Render &render)
     }
 }
 
-void Nexus::Viewports::_draw_static_render_controller()
+void Nexus::MultiViewport::_draw_static_render_controller()
 {
     ImGui::Begin("Controller");
     ImGui::InputFloat("Speed", &Render::SPEED, 1.f, 20.f, "%.0f");
@@ -352,7 +361,7 @@ void Nexus::Viewports::_draw_static_render_controller()
     ImGui::End();
 }
 
-void Nexus::Viewports::_draw_static_render_parameter()
+void Nexus::MultiViewport::_draw_static_render_parameter()
 {
     if (ImGui::Begin("Parameter"))
     {
@@ -388,7 +397,7 @@ void Nexus::Viewports::_draw_static_render_parameter()
     ImGui::End();
 }
 
-void Nexus::Viewports::_refresh_camera_paths()
+void Nexus::MultiViewport::_refresh_camera_paths()
 {
     unsigned hits = 0;
 

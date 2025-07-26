@@ -1,4 +1,4 @@
-#include "property.h"
+#include "prim_property.h"
 
 #include "nexus/core/world.h"
 #include "nexus/event/client.h"
@@ -13,7 +13,7 @@
 
 #include "imgui.h"
 
-Nexus::Property::Property()
+Nexus::PrimProperty::PrimProperty()
 {
     Client::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
@@ -28,7 +28,7 @@ Nexus::Property::Property()
         });
 }
 
-void Nexus::Property::draw()
+void Nexus::PrimProperty::draw()
 {
     if (ImGui::Begin("Property"))
     {

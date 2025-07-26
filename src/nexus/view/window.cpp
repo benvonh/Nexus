@@ -88,12 +88,14 @@ Nexus::Window::Window()
         });
 
     m_FileDialog = new FileDialog(m_Window);
-    m_Viewports.ready();
+    m_MultiViewport.start_engine();
 }
 
 Nexus::Window::~Window() noexcept(false)
 {
     LOG_BASIC("Destructing window...");
+
+    m_MultiViewport.stop_engine();
 
     delete m_FileDialog;
 
@@ -119,13 +121,6 @@ void Nexus::Window::show_exception(const Exception &e)
     _create_layer();
 }
 
-// void Nexus::Window::set_vsync(bool enable)
-// {
-//     log::event("VSync = {}", enable);
-//     // TODO: We can support adaptive VSync
-//     SDL_TRY(SDL_GL_SetSwapInterval(enable ? 1 : 0));
-// }
-
 void Nexus::Window::render_frame()
 {
     const ImGuiIO &io = ImGui::GetIO();
@@ -139,11 +134,13 @@ void Nexus::Window::render_frame()
     ImGui::DockSpaceOverViewport();
     ImGui::ShowDemoWindow(&m_ShowDemo);
 
+    _draw_window_flags();
+
     draw_menu_bar();
     draw_log_history();
 
-    m_Property.draw();
-    m_Viewports.draw();
+    m_PrimProperty.draw();
+    m_MultiViewport.draw();
     m_SceneHierarchy.draw();
 
     // Render
@@ -234,4 +231,25 @@ void Nexus::Window::_destroy_layer()
     ImGui::DestroyContext();
 
     LOG_EVENT("Destroyed ImGui context!");
+}
+
+void Nexus::Window::_draw_window_flags()
+{
+    ImGui::SeparatorText("Swap Interval");
+
+    if (ImGui::Button("Max Frame Rate"))
+    {
+        SDL_TRY(SDL_GL_SetSwapInterval(0));
+        LOG_EVENT("Enabled max frame rate");
+    }
+    if (ImGui::Button("VSync"))
+    {
+        SDL_TRY(SDL_GL_SetSwapInterval(1));
+        LOG_EVENT("Enabled VSync");
+    }
+    if (ImGui::Button("Adaptive VSync"))
+    {
+        SDL_TRY(SDL_GL_SetSwapInterval(-1));
+        LOG_EVENT("Enabled Adaptive VSync");
+    }
 }

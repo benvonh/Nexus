@@ -2,9 +2,9 @@
 
 #include "filedialog.h"
 
-#include "panel/property.h"
+#include "panel/multi_viewport.h"
+#include "panel/prim_property.h"
 #include "panel/scene_hierarchy.h"
-#include "panel/viewports.h"
 
 #include "nexus/exception.h"
 #include "nexus/logging.h"
@@ -24,25 +24,29 @@ namespace Nexus
 
         void show_exception(const Exception &);
 
-        // void set_vsync(bool);
-
         void render_frame();
-
         void handle_events();
 
     private:
         void _create_layer();
         void _destroy_layer();
+        void _draw_window_flags();
 
+    private:
+        /* Internal Flags */
         bool m_Live = true;
         bool m_ShowDemo = false;
         bool m_InViewport = false;
 
-        Property m_Property;
-        Viewports m_Viewports;
+        /* View Panels */
+        PrimProperty m_PrimProperty;
+        MultiViewport m_MultiViewport;
         SceneHierarchy m_SceneHierarchy;
+
+        /* File Dialog Singleton */
         FileDialog *m_FileDialog = nullptr;
 
+        /* SDL Data Structures */
         SDL_Window *m_Window = nullptr;
         SDL_GLContext m_Context = nullptr;
     };

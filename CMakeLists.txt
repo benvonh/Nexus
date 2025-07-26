@@ -144,12 +144,12 @@ set(SOURCE
   src/nexus/view/filedialog.h
   src/nexus/view/panel/log_history.h
   src/nexus/view/panel/menu_bar.h
-  src/nexus/view/panel/property.cpp
-  src/nexus/view/panel/property.h
+  src/nexus/view/panel/multi_viewport.cpp
+  src/nexus/view/panel/multi_viewport.h
+  src/nexus/view/panel/prim_property.cpp
+  src/nexus/view/panel/prim_property.h
   src/nexus/view/panel/scene_hierarchy.cpp
   src/nexus/view/panel/scene_hierarchy.h
-  src/nexus/view/panel/viewports.cpp
-  src/nexus/view/panel/viewports.h
   src/nexus/view/window.cpp
   src/nexus/view/window.h
   src/nexus/view/window_theme.cpp

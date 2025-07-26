@@ -9,11 +9,6 @@
 #include "pxr/usd/usd/prim.h"
 #include "pxr/usd/usdGeom/camera.h"
 
-Nexus::Render::~Render()
-{
-    _delete_engine();
-}
-
 unsigned Nexus::Render::operator()()
 {
     if (FreeCamera)
@@ -25,7 +20,7 @@ unsigned Nexus::Render::operator()()
     {
         m_Engine->SetCameraPath(CameraPath);
     }
-    // Storm render
+    // Storm
     {
         auto [stage, lock] = World::GetStageReadAccess();
         m_Engine->Render(stage->GetPseudoRoot(), this->Params);
@@ -53,7 +48,7 @@ unsigned Nexus::Render::get_texture()
 
 void Nexus::Render::reset()
 {
-    _delete_engine();
+    this->delete_engine();
     m_Engine = new (m_Raw) Engine{};
     m_Engine->SetEnablePresentation(false);
 
@@ -70,18 +65,18 @@ void Nexus::Render::update_size()
     m_Engine->SetRenderBufferSize(Size);
 }
 
-void Nexus::Render::transform_to_camera()
-{
-    auto [stage, lock] = World::GetStageReadAccess();
-    pxr::UsdGeomCamera c(stage->GetPrimAtPath(CameraPath));
-    this->transform_from(c.GetCamera(this->Params.frame));
-}
-
-void Nexus::Render::_delete_engine()
+void Nexus::Render::delete_engine()
 {
     if (m_Engine)
     {
         m_Engine->~Engine();
         m_Engine = nullptr;
     }
+}
+
+void Nexus::Render::transform_to_camera()
+{
+    auto [stage, lock] = World::GetStageReadAccess();
+    pxr::UsdGeomCamera c(stage->GetPrimAtPath(CameraPath));
+    this->transform_from(c.GetCamera(this->Params.frame));
 }

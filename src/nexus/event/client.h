@@ -14,7 +14,7 @@
 namespace Nexus
 {
     // TODO: Implement unregister functionality
-    class Client final : Logger<"Client">
+    class Client final : LOGGER(Client)
     {
         using Callback = std::function<void(const Event &)>;
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "nexus/event/client.h"
 #include "nexus/logging.h"
 #include "nexus/render/render.h"
 
@@ -16,29 +15,25 @@
 
 namespace Nexus
 {
-    class Viewports : Logger<"Viewports">
+    class MultiViewport : Logger<"Viewports">
     {
     public:
-        Viewports();
+        MultiViewport();
 
-        void ready();
-
+        void start_engine();
+        void stop_engine();
         void draw();
 
     private:
         void _draw_main_menu();
-
         void _draw_render(std::size_t index);
-
         void _draw_render_menu(Render &render);
-
         void _draw_static_render_controller();
-
         void _draw_static_render_parameter();
-
         void _refresh_camera_paths();
 
-        // Index of render that consumes input
+    private:
+        // Index of render that wants input
         int m_Captured = -1;
 
         // Number of renders that are active
@@ -50,7 +45,7 @@ namespace Nexus
         // Name of each render
         std::string m_RenderNames[VIEWPORTS_RENDER_COUNT];
 
-        // The renders
+        // The render instances
         std::array<Render, VIEWPORTS_RENDER_COUNT> m_Renders;
 
         // Path of each camera in the scene
