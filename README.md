@@ -1,14 +1,17 @@
-# Digital Twin
+# Nexus
 
-A simple application to interact with ROS2 through the Universal Scene Description.
+A simple Digital Twin application to interact with ROS and the Universal Scene Description.
 
-https://github.com/user-attachments/assets/d0448d48-7468-44f2-b7b0-418af48c90fa
+<!-- https://github.com/user-attachments/assets/d0448d48-7468-44f2-b7b0-418af48c90fa -->
+[](docs\media\test.gif)
+
+**NOTE**: As this is under development, only Windows is currently supported. However, Linux will receive similar support in the near future.
 
 ## Installation
 
 ### Dependency
 
-:warning: This may take upto an hour (I'm not kidding)
+:warning: This may take up to an hour and take up ~50GB of storage!
 
 1. Install [Pixi](https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.msi) - default
 
@@ -75,14 +78,14 @@ Clone this repository under `C:\pixi_ws` then follow the usual steps for a CMake
 Ensure `--config` is consistent with what OpenUSD was built with.
 
 ```ps
-md C:\pixi_ws\DigitalTwin\build
-cd C:\pixi_ws\DigitalTwin\build
+md C:\pixi_ws\Nexus\build
+cd C:\pixi_ws\Nexus\build
 cmake ..
 cmake --build . --target app --config Release -- /m
 .\Release\app.exe
 ```
 
-Scripts are also provided which can be called from anywhere.
+Scripts are also provided which can be called/executed from anywhere.
 
 ## Notes
 
@@ -93,8 +96,8 @@ cd C:\pixi_ws
 pixi shell
 call ros2-windows\setup.bat
 
-devenv           # Visual Studio
-code DigitalTwin # Visual Studio Code
+devenv     # Visual Studio
+code Nexus # Visual Studio Code
 ```
 
 2. Due to immense difficulty in configuring OpenUSD through CMake (Visual Studio multi-config), a single config must be specified. To change later, delete `C:\pixi_ws\usd` and build from scratch again. I'm not sure of the proper way to do this at the moment.
