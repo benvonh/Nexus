@@ -1,0 +1,46 @@
+#pragma once
+
+#include "nexus/render/controller.h"
+#include "nexus/render/parameter.h"
+#include "nexus/logging.h"
+
+#include "pxr/base/gf/vec2i.h"
+#include "pxr/usd/sdf/path.h"
+#include "pxr/usdImaging/usdImagingGL/engine.h"
+
+namespace Nexus
+{
+    class Render : public Controller, public Parameter, Logger<"Render">
+    {
+        using Engine = pxr::UsdImagingGLEngine;
+
+    public:
+        ~Render();
+
+        [[nodiscard]]
+        unsigned operator()();
+
+        unsigned get_texture();
+
+        void reset();
+
+        void update_size();
+
+        void transform_to_camera();
+
+    private:
+        void _delete_engine();
+
+    public:
+        pxr::SdfPath CameraPath;
+
+        pxr::GfVec2i Size = {1280, 720};
+
+        bool FreeCamera = true;
+
+    private:
+        alignas(Engine) std::byte m_Raw[sizeof(Engine)];
+
+        Engine *m_Engine = nullptr;
+    };
+}

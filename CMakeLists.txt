@@ -18,6 +18,10 @@ set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "Disable SDL tests" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Disable SDL test library" FORCE)
 
+# set(Torch_DIR C:/Users/Ben/.pixi/envs/libtorch/Library/share/cmake/Torch)
+# set(CMAKE_CUDA_ARCHITECTURES 86) # RTX 3060 Ti
+# set(USE_SYSTEM_NVTX ON)
+
 ################################################################################
 # Set Platform Specifics
 ################################################################################
@@ -50,23 +54,27 @@ FetchContent_Declare(Assimp
   GIT_REPOSITORY https://github.com/assimp/assimp
   GIT_TAG v6.0.1)
 
-FetchContent_Declare(Termcolor
-  GIT_REPOSITORY https://github.com/ikalnytskyi/termcolor)
-
 FetchContent_Declare(STB
   GIT_REPOSITORY https://github.com/nothings/stb)
 
-FetchContent_MakeAvailable(SDL3 ImGUI Assimp Termcolor STB)
+FetchContent_Declare(Termcolor
+  GIT_REPOSITORY https://github.com/ikalnytskyi/termcolor)
+
+FetchContent_MakeAvailable(SDL3 ImGUI Assimp STB Termcolor)
 
 set(ImGUI_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/imgui-src)
-set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
 set(STB_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/stb-src)
+set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
 
 ################################################################################
 # Find Packages
 ################################################################################
 find_package(OpenGL REQUIRED)
-find_package(ament_cmake REQUIRED)
+
+# find_package(CUDAToolkit REQUIRED)
+# find_package(Torch REQUIRED)
+
+# find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -113,52 +121,43 @@ target_compile_definitions(ImGUI PRIVATE IMGUI_ENABLE_FREETYPE)
 # Add Main Target
 ################################################################################
 set(SOURCE
-  src/dt/app/application.cpp
-  src/dt/app/application.h
-  
-  src/dt/core/filedialog.h
-  src/dt/core/permit.h
-  src/dt/core/window.cpp
-  src/dt/core/window.h
-  src/dt/core/window_theme.cpp
-  src/dt/core/window_theme.h
-  src/dt/core/world.cpp
-  src/dt/core/world.h
-  
-  src/dt/event/client.h
-  src/dt/event/event.h
-  src/dt/event/keyboard_event.h
-  src/dt/event/mouse_event.h
-  src/dt/event/scene_reset_event.h
-  src/dt/event/viewport_capture_event.h
-  
-  src/dt/render/controller.cpp
-  src/dt/render/controller.h
-  src/dt/render/parameter.h
-  src/dt/render/render.cpp
-  src/dt/render/render.h
-  
-  src/dt/ui/log_history.h
-  src/dt/ui/menu_bar.h
-  src/dt/ui/property.cpp
-  src/dt/ui/property.h
-  src/dt/ui/scene_hierarchy.cpp
-  src/dt/ui/scene_hierarchy.h
-  src/dt/ui/viewports.cpp
-  src/dt/ui/viewports.h
-
-
-  src/dt/exception.h
-  src/dt/logging.h
-  src/dt/types.h
-  src/dt/utility.h
-  
-  src/main.cpp)
+  src/main.cpp
+  src/nexus/app/application.cpp
+  src/nexus/app/application.h
+  src/nexus/core/world.cpp
+  src/nexus/core/world.h
+  src/nexus/event/client.h
+  src/nexus/event/event.h
+  src/nexus/event/keyboard_event.h
+  src/nexus/event/mouse_event.h
+  src/nexus/event/scene_reset_event.h
+  src/nexus/event/viewport_capture_event.h
+  src/nexus/exception.h
+  src/nexus/logging.h
+  src/nexus/render/controller.cpp
+  src/nexus/render/controller.h
+  src/nexus/render/parameter.h
+  src/nexus/render/render.cpp
+  src/nexus/render/render.h
+  src/nexus/types.h
+  src/nexus/utility.h
+  src/nexus/view/filedialog.h
+  src/nexus/view/panel/log_history.h
+  src/nexus/view/panel/menu_bar.h
+  src/nexus/view/panel/property.cpp
+  src/nexus/view/panel/property.h
+  src/nexus/view/panel/scene_hierarchy.cpp
+  src/nexus/view/panel/scene_hierarchy.h
+  src/nexus/view/panel/viewports.cpp
+  src/nexus/view/panel/viewports.h
+  src/nexus/view/window.cpp
+  src/nexus/view/window.h
+  src/nexus/view/window_theme.cpp
+  src/nexus/view/window_theme.h)
 
 add_executable(${TARGET} ${SOURCE})
 
 target_include_directories(${TARGET} PRIVATE 
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${ImGUI_SOURCE_DIR}
   ${ImGUI_SOURCE_DIR}/backends
@@ -168,10 +167,10 @@ target_include_directories(${TARGET} PRIVATE
   ${Termcolor_SOURCE_DIR}/include/termcolor)
 
 target_link_libraries(${TARGET}
+  ${PXR_LIBRARIES}
   ${sensor_msgs_TARGETS}
   ${tf2_ros_TARGETS}
   ${urdf_TARGETS}
-  ${PXR_LIBRARIES}
   SDL3::SDL3-static
   OpenGL::GL
   assimp
@@ -205,26 +204,28 @@ if(WIN32)
 
   # For Visual Studio to organize files with the same structure as the source tree
   source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src FILES ${SOURCE})
+
+  # set_target_properties(${TARGET} PROPERTIES WIN32_EXECUTABLE FALSE)
 endif()
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
 
 # TODO: Debating whether to use precompiled headers
-# target_precompile_headers(${TARGET} PRIVATE dt/pch.h)
+# target_precompile_headers(${TARGET} PRIVATE nexus/pch.h)
 
 ################################################################################
 # Do ROS2 Stuff
 ################################################################################
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# if(BUILD_TESTING)
+#   find_package(ament_lint_auto REQUIRED)
+#   # the following line skips the linter which checks for copyrights
+#   # comment the line when a copyright and license is added to all source files
+#   set(ament_cmake_copyright_FOUND TRUE)
+#   # the following line skips cpplint (only works in a git repo)
+#   # comment the line when this package is in a git repo and when
+#   # a copyright and license is added to all source files
+#   set(ament_cmake_cpplint_FOUND TRUE)
+#   ament_lint_auto_find_test_dependencies()
+# endif()
 
-ament_package()
+# ament_package()

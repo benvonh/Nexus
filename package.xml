@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>digital_twin</name>
+  <name>nexus</name>
   <version>0.0.1</version>
-  <description>Digital Twin</description>
+  <description>A simple Digital Twin application</description>
   <maintainer email="benjaminvonsnarski@gmail.com">benvonh</maintainer>
   <license>Apache-2.0</license>
 

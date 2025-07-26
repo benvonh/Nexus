@@ -8,7 +8,7 @@ https://github.com/user-attachments/assets/d0448d48-7468-44f2-b7b0-418af48c90fa
 
 ### Dependency
 
-:warning: This may take upto 30 minutes.
+:warning: This may take upto an hour (I'm not kidding)
 
 1. Install [Pixi](https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.msi) - default
 
@@ -42,7 +42,7 @@ python build_scripts\build_usd.py --build-variant release ..\usd
 
 6. Edit the environment variables so that `PATH` has `C:\pixi_ws\usd\bin;C:\pixi_ws\usd\lib` and `PYTHONPATH` has `C:\pixi_ws\usd\lib\python`
 
-7. Install FreeType via `vcpkg` from the same shell
+7. Install final dependencies via `vcpkg` from the same shell
 
 ```ps
 cd C:\pixi_ws
