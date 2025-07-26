@@ -3,7 +3,7 @@
 A simple Digital Twin application to interact with ROS and the Universal Scene Description.
 
 <!-- https://github.com/user-attachments/assets/d0448d48-7468-44f2-b7b0-418af48c90fa -->
-[](docs\media\test.gif)
+![test](./docs/media/test.gif)
 
 **NOTE**: As this is under development, only Windows is currently supported. However, Linux will receive similar support in the near future.
 
