@@ -1,7 +1,7 @@
 #include "scene_hierarchy.h"
 
 #include "nexus/core/world.h"
-#include "nexus/event/client.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/context_change_event.h"
 #include "nexus/event/scene_reset_event.h"
 #include "nexus/utility.h"
@@ -14,7 +14,7 @@ constexpr auto BASE_FLAGS = ImGuiTreeNodeFlags_OpenOnArrow |
 
 Nexus::SceneHierarchy::SceneHierarchy()
 {
-    Client::On<SceneResetEvent>(
+    EventClient::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
         {
             m_ContextHash = 0;
@@ -58,7 +58,7 @@ void Nexus::SceneHierarchy::draw()
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
                 {
                     m_ContextHash = flags & ImGuiTreeNodeFlags_Selected ? 0 : it->GetPath().GetHash();
-                    Client::Send<ContextChangeEvent>(it->GetPrim());
+                    EventClient::Send<ContextChangeEvent>(it->GetPrim());
                 }
 
                 if (open)
@@ -83,7 +83,7 @@ void Nexus::SceneHierarchy::draw()
                 if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
                 {
                     m_ContextHash = flags & ImGuiTreeNodeFlags_Selected ? 0 : it->GetPath().GetHash();
-                    Client::Send<ContextChangeEvent>(it->GetPrim());
+                    EventClient::Send<ContextChangeEvent>(it->GetPrim());
                 }
                 treeStack &= ~bit<uint64_t>(treeDepth++);
             }

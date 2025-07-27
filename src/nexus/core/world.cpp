@@ -1,73 +1,15 @@
 #include "world.h"
 
-#include "nexus/event/client.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/scene_reset_event.h"
 
 #include "pxr/usd/usdGeom/cylinder.h"
 #include "pxr/usd/usdGeom/metrics.h"
 #include "pxr/usd/usdLux/domeLight.h"
 
-void Nexus::World::NewStage(const std::string &path)
-{
-    LOG_EVENT("Creating new stage at '{}'", path);
-
-    s_Mutex.lock();
-    s_Stage = pxr::UsdStage::CreateNew(path);
-
-    if (!pxr::UsdGeomSetStageUpAxis(s_Stage, pxr::UsdGeomTokens->z))
-        LOG_ALERT("Stage could not set up axis to Z");
-
-    if (!pxr::UsdGeomSetStageMetersPerUnit(s_Stage, 1.0))
-        LOG_ALERT("Stage could not set meters per unit to 1.0");
-
-    s_Mutex.unlock();
-
-    Client::Send<SceneResetEvent>();
-}
-
-void Nexus::World::OpenStage(const std::string &path)
-{
-    LOG_EVENT("Opening stage at '{}'", path);
-
-    s_Mutex.lock();
-    s_Stage = pxr::UsdStage::Open(path);
-    s_Mutex.unlock();
-
-    Client::Send<SceneResetEvent>();
-}
-
-void Nexus::World::SaveStage()
-{
-    LOG_EVENT("Saving current stage...");
-
-    s_Mutex.lock();
-    s_Stage->SetFramesPerSecond(144.0);
-    s_Stage->SetTimeCodesPerSecond(1.0);
-    s_Stage->SetStartTimeCode(1.0);
-    s_Stage->SetEndTimeCode(World::GetTime());
-    s_Stage->Save();
-    s_Mutex.unlock();
-
-    Client::Send<SceneResetEvent>();
-}
-
-void Nexus::World::ExportStage(const std::string &path)
-{
-    LOG_EVENT("Exporting current stage to '{}'", path);
-
-    s_Mutex.lock();
-    s_Stage->SetFramesPerSecond(144.0);
-    s_Stage->SetTimeCodesPerSecond(1.0);
-    s_Stage->SetStartTimeCode(1.0);
-    s_Stage->SetEndTimeCode(World::GetTime());
-    s_Stage->Export(path);
-    s_Mutex.unlock();
-
-    Client::Send<SceneResetEvent>();
-}
-
 auto Nexus::World::CreateDefaultStage() -> pxr::UsdStageRefPtr
 {
+    LOG_EVENT("Creating default stage...");
     auto stage = pxr::UsdStage::CreateInMemory();
 
     if (!pxr::UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->z))
@@ -77,7 +19,7 @@ auto Nexus::World::CreateDefaultStage() -> pxr::UsdStageRefPtr
         LOG_ALERT("Could not set stage meters per unit to 1.0");
 
     auto dome = pxr::UsdLuxDomeLight::Define(stage, pxr::SdfPath("/studio_dome"));
-    auto asset = pxr::SdfAssetPath(R"(C:\pixi_ws\DigitalTwin\assets\studio_small_09_4k.exr)");
+    auto asset = pxr::SdfAssetPath(R"(C:\pixi_ws\Nexus\assets\studio_small_09_4k.exr)");
     dome.CreateTextureFileAttr(pxr::VtValue(asset));
     dome.OrientToStageUpAxis();
 
@@ -100,4 +42,53 @@ auto Nexus::World::CreateDefaultStage() -> pxr::UsdStageRefPtr
     axisY.CreateDisplayColorPrimvar().Set(pxr::VtArray<pxr::GfVec3f>({pxr::GfVec3f(0.0, 1.0, 0.0)}));
     axisZ.CreateDisplayColorPrimvar().Set(pxr::VtArray<pxr::GfVec3f>({pxr::GfVec3f(0.0, 0.0, 1.0)}));
     return stage;
+}
+
+void Nexus::World::NewStage(const std::string &path)
+{
+    LOG_EVENT("Creating new stage at <{}>", path);
+    Sync::Lock();
+    s_Stage = pxr::UsdStage::CreateNew(path);
+
+    if (!pxr::UsdGeomSetStageUpAxis(s_Stage, pxr::UsdGeomTokens->z))
+        LOG_ALERT("Stage could not set up axis to Z");
+
+    if (!pxr::UsdGeomSetStageMetersPerUnit(s_Stage, 1.0))
+        LOG_ALERT("Stage could not set meters per unit to 1.0");
+
+    Sync::Unlock();
+    EventClient::Send<SceneResetEvent>();
+}
+
+void Nexus::World::OpenStage(const std::string &path)
+{
+    LOG_EVENT("Opening stage at <{}>", path);
+    Sync::Lock();
+    s_Stage = pxr::UsdStage::Open(path);
+    Sync::Unlock();
+    EventClient::Send<SceneResetEvent>();
+}
+
+void Nexus::World::SaveStage()
+{
+    LOG_EVENT("Saving stage...");
+    Sync::Lock();
+    s_Stage->SetFramesPerSecond(144.0);
+    s_Stage->SetTimeCodesPerSecond(1.0);
+    s_Stage->SetStartTimeCode(1.0);
+    s_Stage->SetEndTimeCode(World::GetTime());
+    s_Stage->Save();
+    Sync::Unlock();
+}
+
+void Nexus::World::ExportStage(const std::string &path)
+{
+    LOG_EVENT("Exporting stage to <{}>", path);
+    Sync::Lock();
+    s_Stage->SetFramesPerSecond(144.0);
+    s_Stage->SetTimeCodesPerSecond(1.0);
+    s_Stage->SetStartTimeCode(1.0);
+    s_Stage->SetEndTimeCode(World::GetTime());
+    s_Stage->Export(path);
+    Sync::Unlock();
 }

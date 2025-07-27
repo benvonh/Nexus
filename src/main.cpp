@@ -15,30 +15,32 @@
 //
 #include "nexus/app/application.h"
 
-GENERATE_LOG_FUNCTIONS(main)
+GENERATE_LOG_FUNCTIONS(EntryPoint)
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
 #ifdef _DEBUG
-    LOG_BASIC_main("Nexus Debug v0");
+    LOG_BASIC_EntryPoint("Nexus Debug v0");
 
     Nexus::Application app(argc, argv);
 
+    app.world_core();
     app.main_loop();
 #else
     try
     {
         std::cout << "Copyright 2025 Benjamin von Snarski\n\n";
 
-        LOG_BASIC_main("Nexus Release v0");
+        LOG_BASIC_EntryPoint("Nexus Release v0");
 
         Nexus::Application app(argc, argv);
 
+        app.world_core();
         app.main_loop();
     }
     catch (const std::exception &e)
     {
-        LOG_ERROR_main("An exception of type <{}> was thrown!", typeid(e).name());
+        LOG_ERROR_EntryPoint("An exception of type <{}> was thrown!", typeid(e).name());
 
         std::cerr << "\n    " << e.what() << "\n\n";
 
@@ -52,7 +54,7 @@ int main(int argc, char *argv[])
 #include <windows.h>
 int WINAPI WinMain(HINSTANCE _0, HINSTANCE _1, LPSTR _2, int _3)
 {
-    LOG_BASIC_main("WinMain");
+    LOG_BASIC_EntryPoint("<WinMain>");
     return main(0, nullptr);
 }
 #endif

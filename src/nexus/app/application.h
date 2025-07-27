@@ -2,11 +2,9 @@
 
 #include "nexus/logging.h"
 
-#include "rclcpp/rclcpp.hpp"
-
-// #include <mutex>
-// #include <thread>
-// #include <exception>
+#include <mutex>
+#include <thread>
+#include <exception>
 
 namespace Nexus
 {
@@ -17,13 +15,16 @@ namespace Nexus
 
         ~Application();
 
-        void spin_thread();
-
+        void world_core();
         void main_loop();
 
     private:
-        // std::mutex M_Mutex;
-        // std::jthread M_Thread;
-        // std::exception_ptr M_Exception;
+        void _prepare_to_throw(const std::exception &);
+        void _throw_from_thread();
+
+    private:
+        std::mutex m_Mutex;
+        std::jthread m_Thread;
+        std::exception_ptr m_Exception;
     };
 }

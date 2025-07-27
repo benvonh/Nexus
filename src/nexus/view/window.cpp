@@ -4,9 +4,7 @@
 #include "panel/log_history.h"
 #include "panel/menu_bar.h"
 
-#include "nexus/event/client.h"
-#include "nexus/event/keyboard_event.h"
-#include "nexus/event/mouse_event.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/viewport_capture_event.h"
 
 #include "imgui.h"
@@ -19,6 +17,33 @@
         if (!(function)) [[unlikely]]                                \
             throw std::runtime_error(EXPLAIN("{}", SDL_GetError())); \
     } while (0)
+
+template <bool CAPTURE>
+void Nexus::Window::ViewportCaptureMode::set(SDL_Window *window)
+{
+    if constexpr (CAPTURE)
+    {
+        SDL_TRY(SDL_SetWindowRelativeMouseMode(window, true));
+        ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouse;
+    }
+    else
+    {
+        ImGuiIO &io = ImGui::GetIO();
+
+        const float mouseX = io.DisplaySize.x / 2;
+        const float mouseY = io.DisplaySize.y / 2;
+
+        SDL_WarpMouseInWindow(window, mouseX, mouseY);
+        SDL_TRY(SDL_SetWindowRelativeMouseMode(window, false));
+
+        io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+    }
+    m_Captured = CAPTURE;
+    LOG_EVENT("Viewport capture mode set to {}", CAPTURE);
+}
+
+template void Nexus::Window::ViewportCaptureMode::set<true>(SDL_Window *);
+template void Nexus::Window::ViewportCaptureMode::set<false>(SDL_Window *);
 
 Nexus::Window::Window()
 {
@@ -33,7 +58,7 @@ Nexus::Window::Window()
     SDL_TRY(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                                 SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
 
-    LOG_EVENT("Initialized SDL with OpenGL 4.6 compatibility profile");
+    LOG_EVENT("Initialized SDL for OpenGL 4.6 compatibility");
 
 #ifdef _DEBUG
     const char *title = "Nexus (Debug)";
@@ -60,31 +85,10 @@ Nexus::Window::Window()
 
     _create_layer();
 
-    Client::On<ViewportCaptureEvent>(
+    EventClient::On<ViewportCaptureEvent>(
         [this](const ViewportCaptureEvent &e)
         {
-            LOG_BASIC("Viewport capture = {}", e.Capture);
-
-            ImGuiIO &io = ImGui::GetIO();
-
-            m_InViewport = e.Capture;
-
-            if (e.Capture)
-            {
-                SDL_TRY(SDL_SetWindowRelativeMouseMode(m_Window, true));
-
-                io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
-            }
-            else
-            {
-                const float mouseX = io.DisplaySize.x / 2;
-                const float mouseY = io.DisplaySize.y / 2;
-
-                SDL_WarpMouseInWindow(m_Window, mouseX, mouseY);
-                SDL_TRY(SDL_SetWindowRelativeMouseMode(m_Window, false));
-
-                io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
-            }
+            m_ViewportCapture.set<true>(m_Window);
         });
 
     m_FileDialog = new FileDialog(m_Window);
@@ -108,9 +112,9 @@ Nexus::Window::~Window() noexcept(false)
 
 void Nexus::Window::show_exception(const Exception &e)
 {
-    LOG_ERROR("{}", e.what());
+    m_ViewportCapture.set<false>(m_Window);
 
-    Client::Send<ViewportCaptureEvent>(false);
+    LOG_ERROR("{}", e.what());
 
     const auto flag = SDL_MESSAGEBOX_ERROR;
     const char *title = "Oops! An error occurred...";
@@ -159,22 +163,54 @@ void Nexus::Window::render_frame()
 
 void Nexus::Window::handle_events()
 {
-    const ImGuiIO &io = ImGui::GetIO();
+    ImGuiIO &io = ImGui::GetIO();
 
     // NOTE(Ben): I admit defeat in trying to fix the bug
     // where the first mouse click (left as to capture viewport mode)
     // is not registered by SDL. A second click is needed for ImGUI to
     // react properly again.
-    if (m_InViewport)
+    if (m_ViewportCapture)
     {
         SDL_PumpEvents();
+        auto &render = m_MultiViewport.get_active_render();
 
         float x, y;
         auto state = SDL_GetRelativeMouseState(&x, &y);
-        Client::Send<MouseEvent>(x, y, io.DeltaTime);
+        render.look(x, y, io.DeltaTime);
 
         const bool *keyboard = SDL_GetKeyboardState(nullptr);
-        Client::Send<KeyboardEvent>(keyboard, io.DeltaTime);
+
+        if (keyboard[SDL_SCANCODE_W])
+        {
+            render.move<Controller::Direction::FORWARD>(io.DeltaTime);
+        }
+        if (keyboard[SDL_SCANCODE_A])
+        {
+            render.move<Controller::Direction::LEFT>(io.DeltaTime);
+        }
+        // if (keyboard[SDL_SCANCODE_S])
+        if (keyboard[SDL_SCANCODE_R])
+        {
+            render.move<Controller::Direction::BACKWARD>(io.DeltaTime);
+        }
+        // if (keyboard[SDL_SCANCODE_D])
+        if (keyboard[SDL_SCANCODE_S])
+        {
+            render.move<Controller::Direction::RIGHT>(io.DeltaTime);
+        }
+        if (keyboard[SDL_SCANCODE_SPACE])
+        {
+            render.move<Controller::Direction::UP>(io.DeltaTime);
+        }
+        if (keyboard[SDL_SCANCODE_LSHIFT])
+        {
+            render.move<Controller::Direction::DOWN>(io.DeltaTime);
+        }
+        if (keyboard[SDL_SCANCODE_ESCAPE])
+        {
+            m_MultiViewport.no_capture();
+            m_ViewportCapture.set<false>(m_Window);
+        }
     }
     else
     {
@@ -197,8 +233,6 @@ void Nexus::Window::handle_events()
 
 void Nexus::Window::_create_layer()
 {
-    LOG_BASIC("Creating ImGui layer...");
-
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ASSERT(ImGui_ImplOpenGL3_Init("#version 460 core"));
@@ -212,7 +246,7 @@ void Nexus::Window::_create_layer()
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     // TODO
     io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\CascadiaCode.ttf)", 16.f);
-    io.IniFilename = R"(C:\pixi_ws\DigitalTwin\imgui.ini)";
+    io.IniFilename = R"(C:\pixi_ws\Nexus\imgui.ini)";
 
     ImGuiStyle &style = ImGui::GetStyle();
     ImVec4 *colors = style.Colors;
@@ -224,8 +258,6 @@ void Nexus::Window::_create_layer()
 
 void Nexus::Window::_destroy_layer()
 {
-    LOG_BASIC("Destroying ImGui layer...");
-
     ImGui_ImplSDL3_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
@@ -235,18 +267,39 @@ void Nexus::Window::_destroy_layer()
 
 void Nexus::Window::_draw_window_flags()
 {
+    const ImGuiIO &io = ImGui::GetIO();
+
+    static float fps = 0.f;
+    static float dt = 0.f;
+    static float elapsed = 1.f;
+
+    if (elapsed < 1.f)
+    {
+        elapsed += io.DeltaTime;
+    }
+    else
+    {
+        fps = io.Framerate;
+        dt = io.DeltaTime * 1000.f;
+        elapsed = 0.f;
+    }
+
+    ImGui::Text("FPS: %.1f (%.1f ms)", fps, dt);
+
     ImGui::SeparatorText("Swap Interval");
 
-    if (ImGui::Button("Max Frame Rate"))
+    if (ImGui::Button("Uncapped"))
     {
         SDL_TRY(SDL_GL_SetSwapInterval(0));
         LOG_EVENT("Enabled max frame rate");
     }
+    ImGui::SameLine();
     if (ImGui::Button("VSync"))
     {
         SDL_TRY(SDL_GL_SetSwapInterval(1));
         LOG_EVENT("Enabled VSync");
     }
+    ImGui::SameLine();
     if (ImGui::Button("Adaptive VSync"))
     {
         SDL_TRY(SDL_GL_SetSwapInterval(-1));

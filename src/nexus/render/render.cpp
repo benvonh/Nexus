@@ -18,7 +18,7 @@ unsigned Nexus::Render::operator()()
     }
     else
     {
-        m_Engine->SetCameraPath(CameraPath);
+        m_Engine->SetCameraPath(this->CameraPath);
     }
     // Storm
     {
@@ -32,15 +32,15 @@ unsigned Nexus::Render::get_texture()
 {
     const auto handle = m_Engine->GetAovTexture(pxr::HdAovTokens->color);
 
-    if (!handle)
+    if (!handle) [[unlikely]]
         throw exception("AOV texture handle is null");
 
-    const auto *texture = static_cast<pxr::HgiGLTexture *>(handle.Get());
+    const auto *texture = (pxr::HgiGLTexture *)(handle.Get());
 
-    if (!texture)
+    if (!texture) [[unlikely]]
         throw exception("HGI color texture is null");
 
-    if (texture->GetTextureId() == 0)
+    if (texture->GetTextureId() == 0) [[unlikely]]
         throw exception("OpenGL texture is invalid");
 
     return texture->GetTextureId();
@@ -49,20 +49,23 @@ unsigned Nexus::Render::get_texture()
 void Nexus::Render::reset()
 {
     this->delete_engine();
-    m_Engine = new (m_Raw) Engine{};
+    m_Engine = new (m_EngineMemorySpace) Engine{};
     m_Engine->SetEnablePresentation(false);
 
     if (!m_Engine->SetRendererAov(pxr::HdAovTokens->color))
-        throw exception("Error setting AOV to color");
+        throw exception("Tried to set renderer AOV to color");
 
     this->update_size();
+
+    LOG_EVENT("Engine has been reset");
 }
 
 void Nexus::Render::update_size()
 {
-    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), Size);
+    const pxr::GfRect2i dataWindow(pxr::GfVec2i(0), this->Size);
     m_Engine->SetFraming(pxr::CameraUtilFraming(dataWindow));
-    m_Engine->SetRenderBufferSize(Size);
+    m_Engine->SetRenderBufferSize(this->Size);
+    LOG_EVENT("Size updated to {}x{}", this->Size[0], this->Size[1]);
 }
 
 void Nexus::Render::delete_engine()
@@ -71,12 +74,14 @@ void Nexus::Render::delete_engine()
     {
         m_Engine->~Engine();
         m_Engine = nullptr;
+        LOG_EVENT("Engine deleted");
     }
 }
 
 void Nexus::Render::transform_to_camera()
 {
     auto [stage, lock] = World::GetStageReadAccess();
-    pxr::UsdGeomCamera c(stage->GetPrimAtPath(CameraPath));
-    this->transform_from(c.GetCamera(this->Params.frame));
+    pxr::UsdGeomCamera cam(stage->GetPrimAtPath(this->CameraPath));
+    this->transform_from(cam.GetCamera(this->Params.frame));
+    LOG_EVENT("Transformation at {}", this->CameraPath.GetText());
 }

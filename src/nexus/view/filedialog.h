@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nexus/event/client.h"
+#include "nexus/event/event_client.h"
 #include "nexus/exception.h"
 #include "nexus/logging.h"
 
@@ -52,27 +52,28 @@ namespace Nexus
 
         enum class Thread
         {
+            // Moves to event queue
             MAIN,
+            // Invokes within file dialog thread
             SDL
         };
 
-        template <Mode MODE, Thread Th = Thread::MAIN, size_t NF>
+        template <Mode MODE, Thread THREAD = Thread::MAIN, std::size_t NF>
         static void Show(Callback &&fn, const SDL_DialogFileFilter (&f)[NF])
         {
             s_Callback = std::move(fn);
 
             if constexpr (MODE == Mode::OPEN)
-                SDL_ShowOpenFileDialog(callback<Th>, nullptr, s_Window, f, NF, nullptr, false);
+                SDL_ShowOpenFileDialog(callback<THREAD>, nullptr, s_Window, f, NF, nullptr, false);
 
             if constexpr (MODE == Mode::SAVE)
-                SDL_ShowSaveFileDialog(callback<Th>, nullptr, s_Window, f, NF, nullptr);
+                SDL_ShowSaveFileDialog(callback<THREAD>, nullptr, s_Window, f, NF, nullptr);
+
         }
 
     private:
         FileDialog(SDL_Window *window)
         {
-            LOG_BASIC("Initializing FileDialog...");
-
             if (window == nullptr)
                 throw std::invalid_argument("Window is null");
 
@@ -90,8 +91,8 @@ namespace Nexus
             s_Window = nullptr;
         }
 
-        template <Thread Th>
-        static void callback(void *userdata, const char *const *filelist, int filter) noexcept
+        template <Thread THREAD>
+        static void callback(void *_, const char *const *filelist, int filter) noexcept
         {
             if (filelist == nullptr)
             {
@@ -99,28 +100,29 @@ namespace Nexus
             }
             else if (filelist[0] == nullptr)
             {
-                LOG_BASIC("Canceled file dialog");
+                LOG_EVENT("Canceled file dialog");
             }
             else
             {
                 std::string path(filelist[0]);
                 LOG_EVENT("Selected file '{}'", path);
 
-                if constexpr (Th == Thread::MAIN)
+                if constexpr (THREAD == Thread::MAIN)
                 {
-                    Client::Queue(
-                        [fn = std::move(s_Callback), path, filter]()
+                    EventClient::Queue(
+                        [fn = std::move(s_Callback), path = std::move(path), filter]()
                         {
                             fn(path, filter);
                         });
                 }
-                if constexpr (Th == Thread::SDL)
+                if constexpr (THREAD == Thread::SDL)
                 {
                     s_Callback(path, filter);
                 }
             }
         }
 
+    private:
         static inline Callback s_Callback;
 
         static inline SDL_Window *s_Window = nullptr;

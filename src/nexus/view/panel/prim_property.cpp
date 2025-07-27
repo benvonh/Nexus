@@ -1,7 +1,7 @@
 #include "prim_property.h"
 
 #include "nexus/core/world.h"
-#include "nexus/event/client.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/context_change_event.h"
 #include "nexus/event/scene_reset_event.h"
 
@@ -15,13 +15,13 @@
 
 Nexus::PrimProperty::PrimProperty()
 {
-    Client::On<SceneResetEvent>(
+    EventClient::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
         {
             m_ContextPrim = pxr::UsdPrim();
         });
 
-    Client::On<ContextChangeEvent>(
+    EventClient::On<ContextChangeEvent>(
         [this](const ContextChangeEvent &e)
         {
             m_ContextPrim = e.Prim;

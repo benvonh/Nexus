@@ -1,11 +1,20 @@
 #include "application.h"
 
+#include "nexus/core/world.h"
 #include "nexus/view/window.h"
-#include "nexus/exception.h"
+
+#include "rclcpp/utilities.hpp"
 
 Nexus::Application::Application(int argc, char **argv)
 {
-    LOG_BASIC("Initializing ROS...");
+    LOG_BASIC("Initializing ROS with {} argument{}",
+              argc, argc == 1 ? '\0' : 's');
+
+    for (int i = 0; i < argc; ++i)
+    {
+        LOG_BASIC("  [{}] = {}", i, argv[i]);
+    }
+
     rclcpp::init(argc, argv);
 }
 
@@ -15,9 +24,24 @@ Nexus::Application::~Application()
     rclcpp::shutdown();
 }
 
-void Nexus::Application::spin_thread()
+void Nexus::Application::world_core()
 {
-    // _Thread = std::jthread(&Nexus::Application::_Exec_ROS, this);
+    m_Thread = std::jthread(
+        [this]()
+        {
+            while (true)
+            {
+                try
+                {
+                    World::Spin();
+                    break;
+                }
+                catch (const std::exception &e)
+                {
+                    _prepare_to_throw(e);
+                }
+            }
+        });
 }
 
 void Nexus::Application::main_loop()
@@ -31,9 +55,9 @@ void Nexus::Application::main_loop()
             window.render_frame();
             window.handle_events();
 
-            Client::Dispatch();
+            EventClient::Dispatch();
 
-            // this->throw_from_ros();
+            _throw_from_thread();
         }
         catch (const Exception &e)
         {
@@ -42,43 +66,31 @@ void Nexus::Application::main_loop()
     }
 }
 
-// void Nexus::Application::exec_ros()
-// {
-// while (true)
-// {
-//     try
-//     {
-//         // auto node = std::make_shared<Nexus::bridge::Node>();
-//         // auto exec = rclcpp::executors::MultiThreadedExecutor();
-//         // exec.add_node(node);
-//         // exec.spin();
-//         break;
-//     }
-//     catch (const std::exception &e)
-//     {
-//         while (true)
-//         {
-//             std::this_thread::yield();
-//             std::lock_guard guard(_Mutex);
+void Nexus::Application::_prepare_to_throw(const std::exception &e)
+{
+    while (true)
+    {
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1s);
+        std::lock_guard guard(m_Mutex);
 
-//             if (_Exception != nullptr)
-//             {
-//                 _Exception = std::make_exception_ptr(e);
-//                 break;
-//             }
-//         }
-//     }
-// }
-// }
+        if (m_Exception == nullptr)
+        {
+            m_Exception = std::make_exception_ptr(e);
+            LOG_ALERT("{} incoming", typeid(e).name());
+            return;
+        }
+    }
+}
 
-// void Nexus::Application::throw_from_ros()
-// {
-//     std::lock_guard guard(M_Mutex);
+void Nexus::Application::_throw_from_thread()
+{
+    std::lock_guard guard(m_Mutex);
 
-//     if (M_Exception == nullptr) [[likely]]
-//         return;
+    if (!m_Exception) [[likely]]
+        return;
 
-//     std::exception_ptr e;
-//     std::swap(M_Exception, e);
-//     std::rethrow_exception(e);
-// }
+    std::exception_ptr e;
+    std::swap(m_Exception, e);
+    std::rethrow_exception(e);
+}

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28.3)
-project(digital_twin)
+project(nexus)
 
 ################################################################################
 # Set Initial Variables
@@ -126,10 +126,8 @@ set(SOURCE
   src/nexus/app/application.h
   src/nexus/core/world.cpp
   src/nexus/core/world.h
-  src/nexus/event/client.h
+  src/nexus/event/event_client.h
   src/nexus/event/event.h
-  src/nexus/event/keyboard_event.h
-  src/nexus/event/mouse_event.h
   src/nexus/event/scene_reset_event.h
   src/nexus/event/viewport_capture_event.h
   src/nexus/exception.h

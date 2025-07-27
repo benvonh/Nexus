@@ -18,6 +18,7 @@ namespace Nexus
         [[nodiscard]]
         unsigned operator()();
 
+        [[nodiscard]]
         unsigned get_texture();
 
         void reset();
@@ -36,7 +37,7 @@ namespace Nexus
         bool FreeCamera = true;
 
     private:
-        alignas(Engine) std::byte m_Raw[sizeof(Engine)];
+        alignas(Engine) std::byte m_EngineMemorySpace[sizeof(Engine)];
 
         Engine *m_Engine = nullptr;
     };

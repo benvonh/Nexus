@@ -1,9 +1,7 @@
 #include "multi_viewport.h"
 
 #include "nexus/core/world.h"
-#include "nexus/event/client.h"
-#include "nexus/event/keyboard_event.h"
-#include "nexus/event/mouse_event.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/scene_reset_event.h"
 #include "nexus/event/viewport_capture_event.h"
 #include "nexus/view/filedialog.h"
@@ -41,61 +39,17 @@ const char *CULL_STYLES[] = {
 
 Nexus::MultiViewport::MultiViewport()
 {
-    LOG_BASIC("Initializing {} USD renderers...", m_Renders.size());
+    LOG_BASIC("Constructing with {} renderers...", m_Renders.size());
 
     m_RenderNames[0] = "USD Viewport";
 
-    for (std::size_t i = 1; i < m_Renders.size(); i++)
+    for (auto i = 1ull; i < m_Renders.size(); i++)
         m_RenderNames[i] = std::format("USD Viewport (#{})", i + 1);
 
-    Client::On<MouseEvent>(
-        [this](const MouseEvent &e)
-        {
-            m_Renders[m_Captured].look(e.X, e.Y, e.Tick);
-        });
-
-    Client::On<KeyboardEvent>(
-        [this](const KeyboardEvent &e)
-        {
-            Render &render = m_Renders[m_Captured];
-
-            if (e.Keys[SDL_SCANCODE_W])
-            {
-                render.move<Controller::Direction::FORWARD>(e.Tick);
-            }
-            if (e.Keys[SDL_SCANCODE_A])
-            {
-                render.move<Controller::Direction::LEFT>(e.Tick);
-            }
-            // if (e.Keys[SDL_SCANCODE_S])
-            if (e.Keys[SDL_SCANCODE_R])
-            {
-                render.move<Controller::Direction::BACKWARD>(e.Tick);
-            }
-            // if (e.Keys[SDL_SCANCODE_D])
-            if (e.Keys[SDL_SCANCODE_S])
-            {
-                render.move<Controller::Direction::RIGHT>(e.Tick);
-            }
-            if (e.Keys[SDL_SCANCODE_SPACE])
-            {
-                render.move<Controller::Direction::UP>(e.Tick);
-            }
-            if (e.Keys[SDL_SCANCODE_LSHIFT])
-            {
-                render.move<Controller::Direction::DOWN>(e.Tick);
-            }
-            if (e.Keys[SDL_SCANCODE_ESCAPE])
-            {
-                Client::Send<ViewportCaptureEvent>(false);
-                m_Captured = -1;
-            }
-        });
-
-    Client::On<SceneResetEvent>(
+    EventClient::On<SceneResetEvent>(
         [this](const SceneResetEvent &)
         {
-            this->_refresh_camera_paths();
+            _refresh_camera_paths();
             m_Renders[0].reset();
             m_Active = 1;
         });
@@ -104,12 +58,15 @@ Nexus::MultiViewport::MultiViewport()
 void Nexus::MultiViewport::start_engine()
 {
     m_Renders[0].reset();
+    LOG_EVENT("Started render engine");
 }
 
 void Nexus::MultiViewport::stop_engine()
 {
     for (auto &render : m_Renders)
         render.delete_engine();
+
+    LOG_EVENT("Stopped render engine");
 }
 
 void Nexus::MultiViewport::draw()
@@ -307,7 +264,7 @@ void Nexus::MultiViewport::_draw_render(size_t index)
                 render.transform_to_camera();
 
             render.FreeCamera = true;
-            Client::Send<ViewportCaptureEvent>(true);
+            EventClient::Send<ViewportCaptureEvent>();
         }
     }
     else
@@ -418,4 +375,5 @@ void Nexus::MultiViewport::_refresh_camera_paths()
             hits++;
         }
     }
+    LOG_EVENT("Refreshed camera paths, cached {} in total", hits);
 }

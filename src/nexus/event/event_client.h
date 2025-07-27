@@ -13,31 +13,26 @@
 
 namespace Nexus
 {
-    // TODO: Implement unregister functionality
-    class Client final : LOGGER(Client)
+    class EventClient final : Logger<"EventClient">
     {
         using Callback = std::function<void(const Event &)>;
 
     public:
         static void Dispatch()
         {
-            s_Mutex.lock();
-
+            std::lock_guard guard(s_Mutex);
             while (!s_Queue.empty())
             {
                 auto fn = std::move(s_Queue.front());
                 s_Queue.pop();
                 fn();
             }
-
-            s_Mutex.unlock();
         }
 
         static void Queue(std::function<void()> &&fn)
         {
-            s_Mutex.lock();
+            std::lock_guard guard(s_Mutex);
             s_Queue.emplace(std::move(fn));
-            s_Mutex.unlock();
         }
 
         template <typename T, typename F>
@@ -47,14 +42,11 @@ namespace Nexus
 
             auto wrapper = [fn = std::forward<F>(fn)](const Event &e)
             {
-                if (const T *event = dynamic_cast<const T *>(&e))
-                {
-                    fn(*event);
-                }
-                else
-                {
-                    throw exception("Cast to {} is null", typeid(T).name());
-                }
+                static_assert(std::is_base_of_v<Event, T>,
+                              "Must be an event type");
+                static_assert(std::is_invocable_r_v<void, F, const T &>,
+                              "Must invoke with event type");
+                fn(static_cast<const T &>(e));
             };
 
             s_Registry[index].push_back(wrapper);

@@ -1,12 +1,16 @@
 #include "robot.h"
 
-#include "nexus/logging.h"
+#include "nexus/core/world.h"
 
 #include "pxr/usd/usdGeom/cube.h"
 #include "pxr/usd/usdGeom/cylinder.h"
 #include "pxr/usd/usdGeom/mesh.h"
 #include "pxr/usd/usdGeom/sphere.h"
 #include "pxr/usd/usdGeom/xform.h"
+#include "pxr/base/gf/matrix4d.h"
+#include "pxr/base/gf/quatd.h"
+#include "pxr/base/gf/rotation.h"
+#include "pxr/base/gf/vec3d.h"
 
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
@@ -14,10 +18,14 @@
 
 #include "urdf/model.h"
 
-// FIXME: Very messy URDF to USD!
+#include <chrono>
 
-/*============================================================================*/
-static void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfPath &path, pxr::UsdStageRefPtr stage)
+GENERATE_LOG_FUNCTIONS(URDF_to_USD)
+
+
+// TODO: My god this is so complex
+
+void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfPath &path, pxr::UsdStageRefPtr stage)
 {
     auto nodePath = path.AppendChild(pxr::TfToken(node->mName.C_Str()));
     auto nodeXform = pxr::UsdGeomXform::Define(stage, nodePath);
@@ -41,11 +49,11 @@ static void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfP
 
         if (meshName != mesh->mName.C_Str())
         {
-            Nexus::log::debug("Sanitized mesh name from '{}' to '{}'", mesh->mName.C_Str(), meshName);
+            LOG_BASIC_URDF_to_USD("Sanitized mesh name from '{}' to '{}'", mesh->mName.C_Str(), meshName);
         }
         else
         {
-            Nexus::log::debug("Got mesh {}", meshName);
+            LOG_BASIC_URDF_to_USD("Got mesh {}", meshName);
         }
 
         pxr::VtArray<pxr::GfVec3f> points(mesh->mNumVertices);
@@ -75,7 +83,7 @@ static void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfP
         usdMesh.CreateNormalsAttr(pxr::VtValue(normals));
         usdMesh.CreateFaceVertexCountsAttr(pxr::VtValue(faceVertexCounts));
         usdMesh.CreateFaceVertexIndicesAttr(pxr::VtValue(faceVertexIndices));
-        Nexus::log::debug("Defined USD mesh at {}", usdMesh.GetPath().GetString());
+        LOG_BASIC_URDF_to_USD("Defined USD mesh at {}", usdMesh.GetPath().GetString());
     }
 
     for (int i = 0; i < node->mNumChildren; i++)
@@ -84,53 +92,79 @@ static void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfP
     }
 }
 
-/*============================================================================*/
-void Nexus::Robot::reset()
+Nexus::Robot::Robot(const std::filesystem::path &urdf_path) : Entity("Robot"), c_URDF_Path(urdf_path)
 {
-    _XformOps.clear();
+    using namespace std::chrono_literals;
+    m_Buffer = std::make_unique<TF_Buffer>(this->get_clock());
+    m_Listener = std::make_shared<TF_Listener>(m_Buffer.get());
+    m_Timer = this->create_wall_timer(
+        3ms, [this]()
+        {
+            try
+            {
+                auto time = World::GetTime();
+                auto data = _get_write_access<Data>();
+
+                for (auto &[name, xform] : *data)
+                {
+                    const auto look = m_Buffer->lookupTransform("base", name.c_str(), tf2::TimePointZero);
+                    const auto &rotation = look.transform.rotation;
+                    const auto &translation = look.transform.translation;
+                    pxr::GfQuatd q(rotation.w, rotation.x, rotation.y, rotation.z);
+                    pxr::GfVec3d t(translation.x, translation.y, translation.z);
+                    pxr::GfMatrix4d m(q, t);
+                    xform.Set(m, time);
+                }
+            }
+            catch (const tf2::TransformException &e)
+            {
+                RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, e.what());
+            } });
 }
 
-/*============================================================================*/
-void Nexus::Robot::from_urdf(const std::string &path)
+Nexus::Entity::Data *Nexus::Robot::_create_data()
 {
     urdf::Model model;
 
-    if (!model.initFile(path))
+    if (!model.initFile(c_URDF_Path.string()))
     {
-        log::error("Could not parse URDF at {}", path);
+        LOG_ERROR("Could not parse URDF at {}", c_URDF_Path.string());
         return;
     }
 
-    log::event("Parsed URDF with robot name {}", model.name_);
+    LOG_EVENT_URDF_to_USD("Parsed URDF with robot name {}", model.name_);
     const pxr::SdfPath root('/' + model.name_);
-    _XformOps.clear();
 
-    auto [stage, _] = Nexus::World::GetStagePermit();
+    auto *data = new Data();
+    auto &xforms = *data;
+    xforms.clear();
+
+    auto stage = World::GetStageWriteAccess();
 
     for (const auto &[name, link] : model.links_)
     {
         const pxr::SdfPath linkPath = root.AppendChild(pxr::TfToken(name));
-        auto xform = pxr::UsdGeomXform::Define(stage, linkPath);
+        auto xform = pxr::UsdGeomXform::Define(*stage, linkPath);
 
-        log::debug("Got link '{}'", name);
+        LOG_BASIC("Got link '{}'", name);
 
         if (!link)
         {
-            log::debug("Link was null... skipping");
+            LOG_BASIC("Link was null... skipping");
             continue;
         }
         const urdf::VisualSharedPtr &visual = link->visual;
 
         if (!visual)
         {
-            log::debug("Visual was null... skipping");
+            LOG_BASIC("Visual was null... skipping");
             continue;
         }
         const urdf::GeometrySharedPtr &geometry = visual->geometry;
 
         if (!geometry)
         {
-            log::debug("Geometry was null... skipping");
+            LOG_BASIC("Geometry was null... skipping");
             continue;
         }
 
@@ -143,7 +177,7 @@ void Nexus::Robot::from_urdf(const std::string &path)
                                              visual->origin.rotation.x,
                                              visual->origin.rotation.y,
                                              visual->origin.rotation.z));
-        _XformOps[name] = xform.AddTransformOp();
+        xforms[name] = xform.AddTransformOp();
 
         switch (geometry->type)
         {
@@ -154,7 +188,7 @@ void Nexus::Robot::from_urdf(const std::string &path)
             // cube.CreateSizeAttr(pxr::VtValue(box->dim.x)); // FIXME: cube only has a size
             // cube.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0.5, 0.5, 0.5)));
             // _XformOps[name] = cube.AddTransformOp();
-            log::alert("Box geometry is not supported");
+            LOG_ALERT("Box geometry is not supported");
             break;
         }
         case urdf::Geometry::CYLINDER:
@@ -165,7 +199,7 @@ void Nexus::Robot::from_urdf(const std::string &path)
             // usd_cylinder.CreateRadiusAttr(pxr::VtValue(cylinder->radius));
             // usd_cylinder.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0.5, 0.5, 0.5)));
             // _XformOps[name] = usd_cylinder.AddTransformOp();
-            log::alert("Cylinder geometry is not supported");
+            LOG_ALERT("Cylinder geometry is not supported");
             break;
         }
         case urdf::Geometry::MESH:
@@ -185,14 +219,14 @@ void Nexus::Robot::from_urdf(const std::string &path)
 
             if (scene == nullptr)
             {
-                log::debug("Could not import mesh at {}", urdfMesh->filename);
+                LOG_BASIC("Could not import mesh at {}", urdfMesh->filename);
                 break;
             }
-            log::debug("Imported mesh at {}", urdfMesh->filename);
+            LOG_BASIC("Imported mesh at {}", urdfMesh->filename);
 
             if (scene->mNumMeshes == 0)
             {
-                log::debug("Mesh was empty... skipping");
+                LOG_BASIC("Mesh was empty... skipping");
                 break;
             }
 
@@ -201,8 +235,8 @@ void Nexus::Robot::from_urdf(const std::string &path)
                 const aiNode *child = scene->mRootNode->mChildren[i];
                 if (child->mNumMeshes > 0)
                 {
-                    log::debug("Found mesh node '{}'", child->mName.C_Str());
-                    CreateMesh(scene, child, linkPath, stage);
+                    LOG_BASIC("Found mesh node '{}'", child->mName.C_Str());
+                    CreateMesh(scene, child, linkPath, *stage);
                 }
             }
             // CreateMesh(scene, scene->mRootNode, linkPath, stage);
@@ -215,12 +249,13 @@ void Nexus::Robot::from_urdf(const std::string &path)
             // usd_sphere.CreateRadiusAttr(pxr::VtValue(sphere->radius));
             // usd_sphere.CreateDisplayColorPrimvar().Set(pxr::VtArray(pxr::GfVec3f(0.5, 0.5, 0.5)));
             // _XformOps[name] = usd_sphere.AddTransformOp();
-            log::alert("Sphere geometry is not supported");
+            LOG_ALERT("Sphere geometry is not supported");
             break;
         }
         default:
-            log::error("Unknown geometry type!");
+            LOG_ERROR("Unknown geometry type!");
         }
     }
-    log::event("Converted URDF to USD with {} links", _XformOps.size());
+    LOG_EVENT("Converted URDF to USD with {} links", xforms.size());
+    return data;
 }

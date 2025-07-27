@@ -16,6 +16,18 @@ namespace Nexus
 {
     class Window : Logger<"Window">
     {
+        class ViewportCaptureMode
+        {
+        public:
+            template <bool CAPTURE>
+            void set(SDL_Window *window);
+
+            operator bool() const noexcept { return m_Captured; }
+
+        private:
+            bool m_Captured = false;
+        };
+
     public:
         Window();
         ~Window() noexcept(false);
@@ -36,7 +48,6 @@ namespace Nexus
         /* Internal Flags */
         bool m_Live = true;
         bool m_ShowDemo = false;
-        bool m_InViewport = false;
 
         /* View Panels */
         PrimProperty m_PrimProperty;
@@ -49,5 +60,8 @@ namespace Nexus
         /* SDL Data Structures */
         SDL_Window *m_Window = nullptr;
         SDL_GLContext m_Context = nullptr;
+
+        /* Convenient Wrapper */
+        ViewportCaptureMode m_ViewportCapture;
     };
 }

@@ -91,6 +91,8 @@ namespace Nexus
 
         T *operator->() { return &Ref; }
 
+        T &operator*() { return Ref; }
+
         T &Ref;
 
         std::scoped_lock<M> Lock;
@@ -108,6 +110,8 @@ namespace Nexus
         ReadAccess(const T *r, M *m) : Ref(*r), Lock(*m) {}
 
         const T *operator->() { return &Ref; }
+
+        const T &operator*() { return Ref; }
 
         const T &Ref;
 
@@ -166,19 +170,17 @@ namespace Nexus
             long m_Countdown;
         };
 
-        void push(const T &value)
+        void push(const T &elem)
         {
             std::lock_guard guard(m_Mutex);
-            std::destroy_at(&m_Buffer[m_Index]);
-            new (&m_Buffer[m_Index]) T(value);
+            m_Buffer[m_Index] = elem;
             ++(*this);
         }
 
-        void push(T &&value)
+        void push(T &&elem)
         {
             std::lock_guard guard(m_Mutex);
-            std::destroy_at(&m_Buffer[m_Index]);
-            new (&m_Buffer[m_Index]) T(std::move(value));
+            m_Buffer[m_Index] = std::move(elem);
             ++(*this);
         }
 
@@ -186,7 +188,7 @@ namespace Nexus
         void emplace(Args &&...args)
         {
             std::lock_guard guard(m_Mutex);
-            std::destroy_at(&m_Buffer[m_Index]);
+            m_Buffer[m_Index].~T();
             new (&m_Buffer[m_Index]) T(std::forward<Args>(args)...);
             ++(*this);
         }
