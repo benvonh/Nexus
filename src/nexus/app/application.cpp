@@ -33,7 +33,9 @@ void Nexus::Application::world_core()
             {
                 try
                 {
-                    World::Spin();
+                    World::Executor executor;
+                    World::SetExecutor(&executor);
+                    executor.spin();
                     break;
                 }
                 catch (const std::exception &e)

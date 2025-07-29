@@ -4,6 +4,8 @@
 #include "panel/log_history.h"
 #include "panel/menu_bar.h"
 
+#include "nexus/core/world.h"
+#include "nexus/entity/robot.h"
 #include "nexus/event/event_client.h"
 #include "nexus/event/viewport_capture_event.h"
 
@@ -47,7 +49,7 @@ template void Nexus::Window::ViewportCaptureMode::set<false>(SDL_Window *);
 
 Nexus::Window::Window()
 {
-    LOG_BASIC("Constructing window...");
+    LOG_BASIC("Initializing SDL for OpenGL 4.6 compatibility");
 
     SDL_TRY(SDL_Init(SDL_INIT_VIDEO));
     SDL_TRY(SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24));
@@ -58,8 +60,6 @@ Nexus::Window::Window()
     SDL_TRY(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                                 SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
 
-    LOG_EVENT("Initialized SDL for OpenGL 4.6 compatibility");
-
 #ifdef _DEBUG
     const char *title = "Nexus (Debug)";
 #else
@@ -68,20 +68,18 @@ Nexus::Window::Window()
     constexpr auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
     constexpr auto center = SDL_WINDOWPOS_CENTERED;
 
+    LOG_BASIC("Creating SDL window...");
     m_Window = SDL_CreateWindow(title, 1280, 720, flags);
 
     SDL_TRY(m_Window != nullptr);
     SDL_TRY(SDL_SetWindowPosition(m_Window, center, center));
 
-    LOG_EVENT("Created SDL window!");
-
+    LOG_BASIC("Creating OpenGL context...");
     m_Context = SDL_GL_CreateContext(m_Window);
 
     SDL_TRY(m_Context != nullptr);
     SDL_TRY(SDL_GL_MakeCurrent(m_Window, m_Context));
     SDL_TRY(SDL_GL_SetSwapInterval(1));
-
-    LOG_EVENT("Created OpenGL context!");
 
     _create_layer();
 
@@ -97,8 +95,6 @@ Nexus::Window::Window()
 
 Nexus::Window::~Window() noexcept(false)
 {
-    LOG_BASIC("Destructing window...");
-
     m_MultiViewport.stop_engine();
 
     delete m_FileDialog;
@@ -138,7 +134,7 @@ void Nexus::Window::render_frame()
     ImGui::DockSpaceOverViewport();
     ImGui::ShowDemoWindow(&m_ShowDemo);
 
-    _draw_window_flags();
+    _draw_low_level();
 
     draw_menu_bar();
     draw_log_history();
@@ -233,12 +229,12 @@ void Nexus::Window::handle_events()
 
 void Nexus::Window::_create_layer()
 {
+    LOG_BASIC("Creating ImGui context...");
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ASSERT(ImGui_ImplOpenGL3_Init("#version 460 core"));
     ASSERT(ImGui_ImplSDL3_InitForOpenGL(m_Window, m_Context));
-
-    LOG_EVENT("Created ImGui context!");
 
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -248,61 +244,74 @@ void Nexus::Window::_create_layer()
     io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\CascadiaCode.ttf)", 16.f);
     io.IniFilename = R"(C:\pixi_ws\Nexus\imgui.ini)";
 
+    LOG_BASIC("Updating ImGui theme...");
+
     ImGuiStyle &style = ImGui::GetStyle();
     ImVec4 *colors = style.Colors;
     WindowTheme::UpdateStyle(style);
     WindowTheme::UpdateColor(colors);
-
-    LOG_EVENT("Updated ImGui style and colors!");
 }
 
 void Nexus::Window::_destroy_layer()
 {
+    LOG_BASIC("Destroying ImGui context...");
     ImGui_ImplSDL3_Shutdown();
     ImGui_ImplOpenGL3_Shutdown();
     ImGui::DestroyContext();
-
-    LOG_EVENT("Destroyed ImGui context!");
 }
 
-void Nexus::Window::_draw_window_flags()
+void Nexus::Window::_draw_low_level()
 {
     const ImGuiIO &io = ImGui::GetIO();
 
-    static float fps = 0.f;
-    static float dt = 0.f;
-    static float elapsed = 1.f;
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::Button("Test Add Entity"))
+        {
+            World::AddEntity<Robot>(this, R"(C:\pixi_ws\Nexus\assets\franka\franka.urdf)");
+        }
 
-    if (elapsed < 1.f)
-    {
-        elapsed += io.DeltaTime;
-    }
-    else
-    {
-        fps = io.Framerate;
-        dt = io.DeltaTime * 1000.f;
-        elapsed = 0.f;
+        ImGui::EndMainMenuBar();
     }
 
-    ImGui::Text("FPS: %.1f (%.1f ms)", fps, dt);
+    if (ImGui::Begin("Performance Metrics"))
+    {
+        static float dt = 0.f;
+        static float fps = 0.f;
+        static float elapsed = 1.f;
 
-    ImGui::SeparatorText("Swap Interval");
+        if (elapsed < .1f)
+        {
+            elapsed += io.DeltaTime;
+        }
+        else
+        {
+            dt = io.DeltaTime * 1000.f;
+            fps = io.Framerate;
+            elapsed = 0.f;
+        }
 
-    if (ImGui::Button("Uncapped"))
-    {
-        SDL_TRY(SDL_GL_SetSwapInterval(0));
-        LOG_EVENT("Enabled max frame rate");
+        ImGui::Text("FPS: %.1f (%.1f ms)", fps, dt);
+
+        ImGui::SeparatorText("Swap Interval");
+
+        if (ImGui::Button("Max"))
+        {
+            LOG_EVENT("Max frame rate");
+            SDL_TRY(SDL_GL_SetSwapInterval(0));
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("VSync"))
+        {
+            LOG_EVENT("VSync On");
+            SDL_TRY(SDL_GL_SetSwapInterval(1));
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Adaptive"))
+        {
+            LOG_EVENT("Adaptive Sync On");
+            SDL_TRY(SDL_GL_SetSwapInterval(-1));
+        }
     }
-    ImGui::SameLine();
-    if (ImGui::Button("VSync"))
-    {
-        SDL_TRY(SDL_GL_SetSwapInterval(1));
-        LOG_EVENT("Enabled VSync");
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Adaptive VSync"))
-    {
-        SDL_TRY(SDL_GL_SetSwapInterval(-1));
-        LOG_EVENT("Enabled Adaptive VSync");
-    }
+    ImGui::End();
 }

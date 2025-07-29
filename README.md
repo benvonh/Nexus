@@ -11,7 +11,7 @@ A simple Digital Twin application to interact with ROS and the Universal Scene D
 
 ### Dependency
 
-:warning: This may take up to an hour and take up ~50GB of storage!
+:warning: This may take up to an hour and ~50GB of storage!
 
 1. Install [Pixi](https://github.com/prefix-dev/pixi/releases/latest/download/pixi-x86_64-pc-windows-msvc.msi) - default
 
@@ -31,7 +31,6 @@ pixi install
 5. Install OpenUSD from **Developer Command Prompt for VS 2022 Preview**
 
     - For a less cluttered namespace, edit `pxr/pxr.h.in` and set `PXR_INTERNAL_NS` the same as `PXR_NS`.
-    - Due to GREAT difficulty configuring OpenUSD from CMake, you must choose either release or debug and stick to it.
 
 ```ps
 cd C:\pixi_ws
@@ -78,10 +77,8 @@ Clone this repository under `C:\pixi_ws` then follow the usual steps for a CMake
 Ensure `--config` is consistent with what OpenUSD was built with.
 
 ```ps
-md C:\pixi_ws\Nexus\build
-cd C:\pixi_ws\Nexus\build
-cmake ..
-cmake --build . --target app --config Release -- /m
+cmake -S . -B build
+cmake --build build --target app --config Release -- /m
 .\Release\app.exe
 ```
 
@@ -103,6 +100,8 @@ code Nexus # Visual Studio Code
 2. Due to immense difficulty in configuring OpenUSD through CMake (Visual Studio multi-config), a single config must be specified. To change later, delete `C:\pixi_ws\usd` and build from scratch again. I'm not sure of the proper way to do this at the moment.
 
 3. Linking against OpenUSD as a static library on Windows does NOT currently work. The default is shared. See https://github.com/PixarAnimationStudios/OpenUSD/issues/3079.
+
+4. ROS2 does not provide packaged binaries for Debug on Windows; but building ROS2 yourself does not work for Debug anyway plus other CMake issues for a full build. It is recommended to build OpenUSD in Release mode with Debug Info instead.
 
 ## Roadmap
 

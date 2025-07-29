@@ -9,7 +9,6 @@
 
 auto Nexus::World::CreateDefaultStage() -> pxr::UsdStageRefPtr
 {
-    LOG_EVENT("Creating default stage...");
     auto stage = pxr::UsdStage::CreateInMemory();
 
     if (!pxr::UsdGeomSetStageUpAxis(stage, pxr::UsdGeomTokens->z))

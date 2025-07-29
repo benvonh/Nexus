@@ -11,7 +11,6 @@
 #include "tf2_ros/buffer.h"
 #include "tf2_ros/transform_listener.h"
 
-#include <filesystem>
 #include <string>
 #include <unordered_map>
 
@@ -30,16 +29,16 @@ namespace Nexus
         using TF_Listener = tf2_ros::TransformListener;
 
     public:
-        Robot(const std::filesystem::path &urdf_path);
+        Robot(const std::string &urdf_path);
 
-    private:
+    protected:
         Entity::Data *_create_data() override;
 
     private:
+        const std::string c_URDF_Path;
+
         std::shared_ptr<Timer> m_Timer;
         std::unique_ptr<TF_Buffer> m_Buffer;
         std::shared_ptr<TF_Listener> m_Listener;
-
-        const std::filesystem::path c_URDF_Path;
     };
 }

@@ -121,25 +121,29 @@ target_compile_definitions(ImGUI PRIVATE IMGUI_ENABLE_FREETYPE)
 # Add Main Target
 ################################################################################
 set(SOURCE
-  src/main.cpp
   src/nexus/app/application.cpp
   src/nexus/app/application.h
+
+  src/nexus/core/sync.h
   src/nexus/core/world.cpp
   src/nexus/core/world.h
-  src/nexus/event/event_client.h
+
+  src/nexus/entity/entity.h
+  src/nexus/entity/robot.cpp
+  src/nexus/entity/robot.h
+
+  src/nexus/event/context_change_event.h
   src/nexus/event/event.h
+  src/nexus/event/event_client.h
   src/nexus/event/scene_reset_event.h
   src/nexus/event/viewport_capture_event.h
-  src/nexus/exception.h
-  src/nexus/logging.h
+
   src/nexus/render/controller.cpp
   src/nexus/render/controller.h
   src/nexus/render/parameter.h
   src/nexus/render/render.cpp
   src/nexus/render/render.h
-  src/nexus/types.h
-  src/nexus/utility.h
-  src/nexus/view/filedialog.h
+
   src/nexus/view/panel/log_history.h
   src/nexus/view/panel/menu_bar.h
   src/nexus/view/panel/multi_viewport.cpp
@@ -148,10 +152,19 @@ set(SOURCE
   src/nexus/view/panel/prim_property.h
   src/nexus/view/panel/scene_hierarchy.cpp
   src/nexus/view/panel/scene_hierarchy.h
+
+  src/nexus/view/filedialog.h
   src/nexus/view/window.cpp
   src/nexus/view/window.h
   src/nexus/view/window_theme.cpp
-  src/nexus/view/window_theme.h)
+  src/nexus/view/window_theme.h
+
+  src/nexus/exception.h
+  src/nexus/logging.h
+  src/nexus/types.h
+  src/nexus/utility.h
+
+  src/main.cpp)
 
 add_executable(${TARGET} ${SOURCE})
 

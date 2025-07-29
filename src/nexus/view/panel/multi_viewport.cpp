@@ -39,11 +39,11 @@ const char *CULL_STYLES[] = {
 
 Nexus::MultiViewport::MultiViewport()
 {
-    LOG_BASIC("Constructing with {} renderers...", m_Renders.size());
+    LOG_BASIC("Buffered render viewports = {}", m_Renders.size());
 
     m_RenderNames[0] = "USD Viewport";
 
-    for (auto i = 1ull; i < m_Renders.size(); i++)
+    for (std::size_t i = 0; i < m_Renders.size(); ++i)
         m_RenderNames[i] = std::format("USD Viewport (#{})", i + 1);
 
     EventClient::On<SceneResetEvent>(

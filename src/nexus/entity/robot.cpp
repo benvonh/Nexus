@@ -1,6 +1,7 @@
 #include "robot.h"
 
 #include "nexus/core/world.h"
+#include "nexus/exception.h"
 
 #include "pxr/usd/usdGeom/cube.h"
 #include "pxr/usd/usdGeom/cylinder.h"
@@ -21,7 +22,6 @@
 #include <chrono>
 
 GENERATE_LOG_FUNCTIONS(URDF_to_USD)
-
 
 // TODO: My god this is so complex
 
@@ -92,11 +92,11 @@ void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfPath &pa
     }
 }
 
-Nexus::Robot::Robot(const std::filesystem::path &urdf_path) : Entity("Robot"), c_URDF_Path(urdf_path)
+Nexus::Robot::Robot(const std::string &urdf_path) : Entity("robot"), c_URDF_Path(urdf_path)
 {
     using namespace std::chrono_literals;
     m_Buffer = std::make_unique<TF_Buffer>(this->get_clock());
-    m_Listener = std::make_shared<TF_Listener>(m_Buffer.get());
+    m_Listener = std::make_shared<TF_Listener>(*m_Buffer);
     m_Timer = this->create_wall_timer(
         3ms, [this]()
         {
@@ -126,13 +126,10 @@ Nexus::Entity::Data *Nexus::Robot::_create_data()
 {
     urdf::Model model;
 
-    if (!model.initFile(c_URDF_Path.string()))
-    {
-        LOG_ERROR("Could not parse URDF at {}", c_URDF_Path.string());
-        return;
-    }
+    if (!model.initFile(c_URDF_Path))
+        throw exception("Error parsing URDF at {}", c_URDF_Path);
 
-    LOG_EVENT_URDF_to_USD("Parsed URDF with robot name {}", model.name_);
+    LOG_EVENT("Parsed URDF with robot name {}", model.name_);
     const pxr::SdfPath root('/' + model.name_);
 
     auto *data = new Data();

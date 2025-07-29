@@ -19,12 +19,16 @@ namespace Nexus
         };
 
     public:
-        Entity(const std::string &name) : Node(name), m_Data(_create_data()) {}
+        Entity(const std::string &name) : rclcpp::Node(name) {}
 
         virtual ~Entity() = default;
 
+        void initialize()
+        {
+            m_Data = std::unique_ptr<Data>(_create_data());
+        }
+
     protected:
-        [[nodiscard]]
         virtual Data *_create_data() = 0;
 
         template <typename T>

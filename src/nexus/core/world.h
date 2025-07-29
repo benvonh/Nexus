@@ -21,9 +21,9 @@ namespace Nexus
     {
         friend class Entity;
 
+    public:
         using Executor = rclcpp::executors::MultiThreadedExecutor;
 
-    public:
         World() = delete;
         ~World() = delete;
 
@@ -57,10 +57,9 @@ namespace Nexus
 
         static void ExportStage(const std::string &path);
 
-        static void Spin()
+        static void SetExecutor(Executor *executor)
         {
-            s_Executor = std::make_unique<Executor>();
-            s_Executor->spin();
+            s_Executor = executor;
         }
 
         template <typename T, typename... Args>
@@ -68,8 +67,15 @@ namespace Nexus
         {
             LOG_EVENT("Adding entity of type <{}> at {}", typeid(T).name(), key);
             static_assert(std::is_base_of_v<Entity, T>, "Must be an Entity type");
-            s_Entities[key] = std::make_shared<T>(std::forward<Args>(args)...);
-            s_Executor->add_node(s_Entities[key]);
+
+            if (s_Entities.contains(key))
+            {
+                LOG_ERROR("Entity at {} already exists!", key);
+                return;
+            }
+            s_Entities.emplace(key, new T(std::forward<Args>(args)...));
+            s_Entities.at(key)->initialize();
+            s_Executor->add_node(s_Entities.at(key));
         }
 
         static void RemoveEntity(void *key)
@@ -94,6 +100,6 @@ namespace Nexus
 
         static inline std::unordered_map<void *, std::shared_ptr<Entity>> s_Entities;
 
-        static inline std::unique_ptr<Executor> s_Executor;
+        static inline Executor *s_Executor = nullptr;
     };
 }
