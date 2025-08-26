@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event.h"
+#include "nexus/event/event.h"
 
 namespace Nexus
 {

@@ -2,6 +2,7 @@
 
 #include "nexus/core/world.h"
 #include "nexus/exception.h"
+#include "nexus/logging.h"
 
 #include "pxr/usd/usdGeom/cube.h"
 #include "pxr/usd/usdGeom/cylinder.h"
@@ -20,8 +21,6 @@
 #include "urdf/model.h"
 
 #include <chrono>
-
-GENERATE_LOG_FUNCTIONS(URDF_to_USD)
 
 // TODO: My god this is so complex
 
@@ -49,11 +48,11 @@ void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfPath &pa
 
         if (meshName != mesh->mName.C_Str())
         {
-            LOG_BASIC_URDF_to_USD("Sanitized mesh name from '{}' to '{}'", mesh->mName.C_Str(), meshName);
+            LOG_BASIC("Sanitized mesh name from '{}' to '{}'", mesh->mName.C_Str(), meshName);
         }
         else
         {
-            LOG_BASIC_URDF_to_USD("Got mesh {}", meshName);
+            LOG_BASIC("Got mesh {}", meshName);
         }
 
         pxr::VtArray<pxr::GfVec3f> points(mesh->mNumVertices);
@@ -83,7 +82,7 @@ void CreateMesh(const aiScene *scene, const aiNode *node, const pxr::SdfPath &pa
         usdMesh.CreateNormalsAttr(pxr::VtValue(normals));
         usdMesh.CreateFaceVertexCountsAttr(pxr::VtValue(faceVertexCounts));
         usdMesh.CreateFaceVertexIndicesAttr(pxr::VtValue(faceVertexIndices));
-        LOG_BASIC_URDF_to_USD("Defined USD mesh at {}", usdMesh.GetPath().GetString());
+        LOG_BASIC("Defined USD mesh at {}", usdMesh.GetPath().GetString());
     }
 
     for (int i = 0; i < node->mNumChildren; i++)
@@ -97,29 +96,29 @@ Nexus::Robot::Robot(const std::string &urdf_path) : Entity("robot"), c_URDF_Path
     using namespace std::chrono_literals;
     m_Buffer = std::make_unique<TF_Buffer>(this->get_clock());
     m_Listener = std::make_shared<TF_Listener>(*m_Buffer);
-    m_Timer = this->create_wall_timer(
-        3ms, [this]()
-        {
-            try
-            {
-                auto time = World::GetTime();
-                auto data = _get_write_access<Data>();
+    // m_Timer = this->create_wall_timer(
+    //     3ms, [this]()
+    //     {
+    //         try
+    //         {
+    //             auto time = World::GetTime();
+    //             auto data = _get_write_access<Data>();
 
-                for (auto &[name, xform] : *data)
-                {
-                    const auto look = m_Buffer->lookupTransform("base", name.c_str(), tf2::TimePointZero);
-                    const auto &rotation = look.transform.rotation;
-                    const auto &translation = look.transform.translation;
-                    pxr::GfQuatd q(rotation.w, rotation.x, rotation.y, rotation.z);
-                    pxr::GfVec3d t(translation.x, translation.y, translation.z);
-                    pxr::GfMatrix4d m(q, t);
-                    xform.Set(m, time);
-                }
-            }
-            catch (const tf2::TransformException &e)
-            {
-                RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, e.what());
-            } });
+    //             for (auto &[name, xform] : *data)
+    //             {
+    //                 const auto look = m_Buffer->lookupTransform("base", name.c_str(), tf2::TimePointZero);
+    //                 const auto &rotation = look.transform.rotation;
+    //                 const auto &translation = look.transform.translation;
+    //                 pxr::GfQuatd q(rotation.w, rotation.x, rotation.y, rotation.z);
+    //                 pxr::GfVec3d t(translation.x, translation.y, translation.z);
+    //                 pxr::GfMatrix4d m(q, t);
+    //                 xform.Set(m, time);
+    //             }
+    //         }
+    //         catch (const tf2::TransformException &e)
+    //         {
+    //             RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 1000, e.what());
+    //         } });
 }
 
 Nexus::Entity::Data *Nexus::Robot::_create_data()

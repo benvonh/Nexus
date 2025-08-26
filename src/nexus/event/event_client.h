@@ -13,7 +13,7 @@
 
 namespace Nexus
 {
-    class EventClient final : Logger<"EventClient">
+    class EventClient final
     {
         using Callback = std::function<void(const Event &)>;
 

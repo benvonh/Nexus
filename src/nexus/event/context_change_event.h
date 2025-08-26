@@ -1,6 +1,6 @@
 #pragma once
 
-#include "event.h"
+#include "nexus/event/event.h"
 
 #include "pxr/usd/usd/prim.h"
 

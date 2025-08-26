@@ -2,19 +2,19 @@
 
 #include "filedialog.h"
 
-#include "panel/multi_viewport.h"
-#include "panel/prim_property.h"
-#include "panel/scene_hierarchy.h"
-
 #include "nexus/exception.h"
-#include "nexus/logging.h"
+#include "nexus/view/panel/multi_viewport.h"
+#include "nexus/view/panel/prim_property.h"
+#include "nexus/view/panel/scene_hierarchy.h"
 
 #include "SDL3/SDL.h"
 #include "SDL3/SDL_opengl.h"
 
+#include <memory>
+
 namespace Nexus
 {
-    class Window : Logger<"Window">
+    class Window final
     {
         class ViewportCaptureMode
         {
@@ -55,7 +55,7 @@ namespace Nexus
         SceneHierarchy m_SceneHierarchy;
 
         /* File Dialog Singleton */
-        FileDialog *m_FileDialog = nullptr;
+        std::unique_ptr<FileDialog> m_FileDialog;
 
         /* SDL Data Structures */
         SDL_Window *m_Window = nullptr;

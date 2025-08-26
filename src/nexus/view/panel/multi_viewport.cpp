@@ -4,6 +4,7 @@
 #include "nexus/event/event_client.h"
 #include "nexus/event/scene_reset_event.h"
 #include "nexus/event/viewport_capture_event.h"
+#include "nexus/logging.h"
 #include "nexus/view/filedialog.h"
 
 #include "pxr/imaging/hgiGL/texture.h"

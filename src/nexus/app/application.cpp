@@ -1,6 +1,7 @@
 #include "application.h"
 
 #include "nexus/core/world.h"
+#include "nexus/logging.h"
 #include "nexus/view/window.h"
 
 #include "rclcpp/utilities.hpp"

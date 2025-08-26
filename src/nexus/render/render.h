@@ -2,7 +2,6 @@
 
 #include "nexus/render/controller.h"
 #include "nexus/render/parameter.h"
-#include "nexus/logging.h"
 
 #include "pxr/base/gf/vec2i.h"
 #include "pxr/usd/sdf/path.h"
@@ -10,7 +9,7 @@
 
 namespace Nexus
 {
-    class Render : public Controller, public Parameter, Logger<"Render">
+    class Render final : public Controller, public Parameter
     {
         using Engine = pxr::UsdImagingGLEngine;
 
@@ -28,6 +27,8 @@ namespace Nexus
         void delete_engine();
 
         void transform_to_camera();
+
+        void intersection();
 
     public:
         pxr::SdfPath CameraPath;

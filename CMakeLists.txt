@@ -18,10 +18,6 @@ set(SDL_STATIC ON CACHE BOOL "Enable SDL static build" FORCE)
 set(SDL_TESTS OFF CACHE BOOL "Disable SDL tests" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "Disable SDL test library" FORCE)
 
-# set(Torch_DIR C:/Users/Ben/.pixi/envs/libtorch/Library/share/cmake/Torch)
-# set(CMAKE_CUDA_ARCHITECTURES 86) # RTX 3060 Ti
-# set(USE_SYSTEM_NVTX ON)
-
 ################################################################################
 # Set Platform Specifics
 ################################################################################
@@ -70,10 +66,6 @@ set(Termcolor_SOURCE_DIR ${CMAKE_SOURCE_DIR}/build/_deps/termcolor-src)
 # Find Packages
 ################################################################################
 find_package(OpenGL REQUIRED)
-
-# find_package(CUDAToolkit REQUIRED)
-# find_package(Torch REQUIRED)
-
 # find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -221,8 +213,7 @@ endif()
 
 target_compile_features(${TARGET} PUBLIC c_std_99 cxx_std_${CMAKE_CXX_STANDARD})
 
-# TODO: Debating whether to use precompiled headers
-# target_precompile_headers(${TARGET} PRIVATE nexus/pch.h)
+target_precompile_headers(${TARGET} PRIVATE src/nexus/pch.h)
 
 ################################################################################
 # Do ROS2 Stuff

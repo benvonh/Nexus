@@ -1,12 +1,10 @@
 #pragma once
 
-#include "nexus/logging.h"
-
 #include "pxr/usd/usd/prim.h"
 
 namespace Nexus
 {
-    class PrimProperty : Logger<"Prim Property">
+    class PrimProperty final
     {
     public:
         PrimProperty();

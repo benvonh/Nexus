@@ -8,12 +8,11 @@
 #include <format>
 #include <iostream>
 #include <mutex>
+#include <string>
+#include <string_view>
 
 #define LOG_ENABLE_PRINT
 
-// It is better for alignment to set the line length
-// to 2^n - 1  because `Nexus::Log::Entry` contains
-// just one byte for `Nexus::Log::Type`.
 #ifndef LOG_LINE_LEN
 #define LOG_LINE_LEN 127
 #endif
@@ -22,48 +21,19 @@
 #define LOG_BUF_SIZE 20
 #endif
 
-#define LOGGER(class) ::Nexus::Logger<#class>
-
-#define LOG_BASIC(...) Log<::Nexus::Log::Type::BASIC>(__VA_ARGS__)
-#define LOG_EVENT(...) Log<::Nexus::Log::Type::EVENT>(__VA_ARGS__)
-#define LOG_ALERT(...) Log<::Nexus::Log::Type::ALERT>(__VA_ARGS__)
-#define LOG_ERROR(...) Log<::Nexus::Log::Type::ERROR>(__VA_ARGS__)
-
-#define LOG_BASIC_TAG(tag, ...) ::Nexus::Logger<#tag>::Log<::Nexus::Log::Type::BASIC>(__VA_ARGS__)
-#define LOG_EVENT_TAG(tag, ...) ::Nexus::Logger<#tag>::Log<::Nexus::Log::Type::EVENT>(__VA_ARGS__)
-#define LOG_ALERT_TAG(tag, ...) ::Nexus::Logger<#tag>::Log<::Nexus::Log::Type::ALERT>(__VA_ARGS__)
-#define LOG_ERROR_TAG(tag, ...) ::Nexus::Logger<#tag>::Log<::Nexus::Log::Type::ERROR>(__VA_ARGS__)
-
-#define GENERATE_LOG_FUNCTIONS(name)                                                              \
-    template <typename... Args>                                                                   \
-    inline void LOG_BASIC_##name(const std::format_string<Args...> fmt, Args &&...args)           \
-    {                                                                                             \
-        ::Nexus::Logger<#name>::Log<::Nexus::Log::Type::BASIC>(fmt, std::forward<Args>(args)...); \
-    }                                                                                             \
-    template <typename... Args>                                                                   \
-    inline void LOG_EVENT_##name(const std::format_string<Args...> fmt, Args &&...args)           \
-    {                                                                                             \
-        ::Nexus::Logger<#name>::Log<::Nexus::Log::Type::EVENT>(fmt, std::forward<Args>(args)...); \
-    }                                                                                             \
-    template <typename... Args>                                                                   \
-    inline void LOG_ALERT_##name(const std::format_string<Args...> fmt, Args &&...args)           \
-    {                                                                                             \
-        ::Nexus::Logger<#name>::Log<::Nexus::Log::Type::ALERT>(fmt, std::forward<Args>(args)...); \
-    }                                                                                             \
-    template <typename... Args>                                                                   \
-    inline void LOG_ERROR_##name(const std::format_string<Args...> fmt, Args &&...args)           \
-    {                                                                                             \
-        ::Nexus::Logger<#name>::Log<::Nexus::Log::Type::ERROR>(fmt, std::forward<Args>(args)...); \
-    }
+#define LOG_BASIC(...) ::Nexus::Log::Basic<__FILE__>(__VA_ARGS__)
+#define LOG_EVENT(...) ::Nexus::Log::Event<__FILE__>(__VA_ARGS__)
+#define LOG_ALERT(...) ::Nexus::Log::Alert<__FILE__>(__VA_ARGS__)
+#define LOG_ERROR(...) ::Nexus::Log::Error<__FILE__>(__VA_ARGS__)
 
 namespace Nexus
 {
-    namespace Log
+    struct Log
     {
         ///
         /// @brief Severity or level
         ///
-        enum class Type : std::uint8_t
+        enum Type : std::uint8_t
         {
             BASIC,
             EVENT,
@@ -72,125 +42,108 @@ namespace Nexus
         };
 
         ///
-        /// @brief A string message with a `Nexus::Log::Type`
+        /// @brief A string message and tag of `Nexus::Log::Type`
         ///
         struct Entry
         {
-            char Text[LOG_LINE_LEN] = {};
+            char Message[LOG_LINE_LEN] = {};
             Type Tag = Type::BASIC;
         };
 
-        ///
-        /// @brief A circular buffer of `Nexus::Log::Entry` as a singleton
-        ///
-        class Book
+        template <MetaString FILE, typename... Args>
+        static void Basic(const std::format_string<Args...> fmt, Args &&...args)
         {
-        public:
-            ///
-            /// @brief Get the log book
-            /// @return Circular buffer of `Nexus::Log::Entry`
-            ///
-            static auto &Get() noexcept { return s_Book; }
-
-            ///
-            /// @brief Get the size of the log book
-            /// @return Size of the circular buffer
-            ///
-            static auto Size() noexcept { return s_Book.size(); }
-
-        protected:
-            static inline CircularBuffer<Entry, LOG_BUF_SIZE, std::mutex> s_Book;
-        };
-    }
-
-    ///
-    /// @brief A logger with a name
-    /// @tparam NAME Name of logger
-    ///
-    template <MetaString NAME>
-    class Logger : Log::Book
-    {
-    public:
-        ///
-        /// @brief Format a message of `Log::Type` and log an entry in `Log::Book`
-        /// @tparam TYPE One of `Log::Type`
-        /// @tparam ...Args Forwarded to `std::format`
-        /// @param fmt Format string
-        /// @param ...args Forwarded to `std::format`
-        ///
-        template <Log::Type TYPE, typename... Args>
-        static void Log(const std::format_string<Args...> fmt, Args &&...args)
-        {
-            char msg[LOG_LINE_LEN];
-
-            auto res = std::format_to_n(msg, FMT_SIZE, fmt, std::forward<Args>(args)...);
-
-            if (res.size >= FMT_SIZE)
-            {
-                *res.out = '\0';
-            }
-            else
-            {
-                msg[res.size] = '\0';
-            }
-
-            s_Book.lock();
-
-            if constexpr (TYPE == Log::Type::BASIC)
-                res = std::format_to_n(s_Book.peek().Text, FMT_SIZE, FMT_BASIC, msg);
-
-            if constexpr (TYPE == Log::Type::EVENT)
-                res = std::format_to_n(s_Book.peek().Text, FMT_SIZE, FMT_EVENT, msg);
-
-            if constexpr (TYPE == Log::Type::ALERT)
-                res = std::format_to_n(s_Book.peek().Text, FMT_SIZE, FMT_ALERT, msg);
-
-            if constexpr (TYPE == Log::Type::ERROR)
-                res = std::format_to_n(s_Book.peek().Text, FMT_SIZE, FMT_ERROR, msg);
-
-            if (res.size >= FMT_SIZE)
-            {
-                *res.out = '\0';
-            }
-            else
-            {
-                s_Book.peek().Text[res.size] = '\0';
-            }
-
-#ifdef LOG_ENABLE_PRINT
-            switch (TYPE)
-            {
-            case Log::Type::BASIC:
-                std::cout << termcolor::white << s_Book.peek().Text << termcolor::reset << std::endl;
-                break;
-            case Log::Type::EVENT:
-                std::cout << termcolor::green << s_Book.peek().Text << termcolor::reset << std::endl;
-                break;
-            case Log::Type::ALERT:
-                std::cerr << termcolor::yellow << s_Book.peek().Text << termcolor::reset << std::endl;
-                break;
-            case Log::Type::ERROR:
-                std::cerr << termcolor::red << s_Book.peek().Text << termcolor::reset << std::endl;
-                break;
-            }
-#endif
-
-            s_Book.peek().Tag = TYPE;
-            s_Book.next();
-            s_Book.unlock();
+            Log::Impl<Log::ParseFileToName<FILE>(), Type::BASIC>(fmt, std::forward<Args>(args)...);
         }
 
-    private:
-        static constexpr std::size_t FMT_SIZE = LOG_LINE_LEN - 1;
+        template <MetaString FILE, typename... Args>
+        static void Event(const std::format_string<Args...> fmt, Args &&...args)
+        {
+            Log::Impl<Log::ParseFileToName<FILE>(), Type::EVENT>(fmt, std::forward<Args>(args)...);
+        }
 
-        static constexpr MetaString FMT_BASIC = "[BASIC] (" + NAME + ") : {}";
-        static constexpr MetaString FMT_EVENT = "[EVENT] (" + NAME + ") : {}";
-        static constexpr MetaString FMT_ALERT = "[ALERT] (" + NAME + ") : {}";
-        static constexpr MetaString FMT_ERROR = "[ERROR] (" + NAME + ") : {}";
+        template <MetaString FILE, typename... Args>
+        static void Alert(const std::format_string<Args...> fmt, Args &&...args)
+        {
+            Log::Impl<Log::ParseFileToName<FILE>(), Type::ALERT>(fmt, std::forward<Args>(args)...);
+        }
 
-        static_assert(FMT_SIZE > FMT_BASIC.size(), "LOG_LINE_LEN");
-        static_assert(FMT_SIZE > FMT_EVENT.size(), "LOG_LINE_LEN");
-        static_assert(FMT_SIZE > FMT_ALERT.size(), "LOG_LINE_LEN");
-        static_assert(FMT_SIZE > FMT_ERROR.size(), "LOG_LINE_LEN");
+        template <MetaString FILE, typename... Args>
+        static void Error(const std::format_string<Args...> fmt, Args &&...args)
+        {
+            Log::Impl<Log::ParseFileToName<FILE>(), Type::ERROR>(fmt, std::forward<Args>(args)...);
+        }
+
+        template <MetaString NAME, Type TYPE, typename... Args>
+        static void Impl(const std::format_string<Args...> fmt, Args &&...args)
+        {
+            auto add_null_char = [&](auto &res, auto &log)
+            {
+                if (res.size < LOG_LINE_LEN)
+                {
+                    log[res.size] = '\0';
+                }
+            };
+
+            const std::string msg = std::format(fmt, std::forward<Args>(args)...);
+
+            auto [entry, lock] = Log::Book.page();
+            auto &log = entry.Message;
+            entry.Tag = TYPE;
+
+            if constexpr (TYPE == Type::BASIC)
+            {
+                auto res = std::format_to_n(log, FMT_SIZE, "[BASIC] ({}) : {}", NAME.String, msg);
+                add_null_char(res, log);
+                std::cout << termcolor::white << log << termcolor::reset << std::endl;
+            }
+            if constexpr (TYPE == Type::EVENT)
+            {
+                auto res = std::format_to_n(log, FMT_SIZE, "[EVENT] ({}) : {}", NAME.String, msg);
+                add_null_char(res, log);
+                std::cout << termcolor::green << log << termcolor::reset << std::endl;
+            }
+            if constexpr (TYPE == Type::ALERT)
+            {
+                auto res = std::format_to_n(log, FMT_SIZE, "[ALERT] ({}) : {}", NAME.String, msg);
+                add_null_char(res, log);
+                std::cerr << termcolor::yellow << log << termcolor::reset << std::endl;
+            }
+            if constexpr (TYPE == Type::ERROR)
+            {
+                auto res = std::format_to_n(log, FMT_SIZE, "[ERROR] ({}) : {}", NAME.String, msg);
+                add_null_char(res, log);
+                std::cerr << termcolor::red << log << termcolor::reset << std::endl;
+            }
+            Log::Book.next();
+        }
+
+        template <MetaString FILE>
+        static consteval auto ParseFileToName()
+        {
+            MetaString<FILE.size()> name;
+
+            // MSVC: absolute path
+            constexpr const auto offset = 21ull;
+            for (auto i = offset; i < FILE.size(); ++i)
+            {
+                if (FILE[i] == '\\')
+                {
+                    name[i - offset] = '.';
+                    continue;
+                }
+                if (FILE[i] == '.')
+                {
+                    name[i - offset] = '\0';
+                    break;
+                }
+                name[i - offset] = FILE[i];
+            }
+            return name;
+        }
+
+        static inline CircularBuffer<Entry, LOG_BUF_SIZE, std::mutex> Book;
+
+        static constexpr const std::size_t FMT_SIZE = LOG_LINE_LEN - 1;
     };
 }

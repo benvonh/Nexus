@@ -1,7 +1,6 @@
 #pragma once
 
-#include "sync.h"
-
+#include "nexus/core/sync.h"
 #include "nexus/entity/entity.h"
 #include "nexus/logging.h"
 #include "nexus/types.h"
@@ -17,7 +16,7 @@
 
 namespace Nexus
 {
-    class World final : LOGGER(World)
+    class World final
     {
         friend class Entity;
 

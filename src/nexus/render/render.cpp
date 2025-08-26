@@ -2,6 +2,7 @@
 
 #include "nexus/core/world.h"
 #include "nexus/exception.h"
+#include "nexus/logging.h"
 
 #include "pxr/base/gf/rect2i.h"
 #include "pxr/base/gf/vec2i.h"
@@ -11,7 +12,7 @@
 
 unsigned Nexus::Render::operator()()
 {
-    if (FreeCamera)
+    if (this->FreeCamera)
     {
         const auto f = this->Camera.GetFrustum();
         m_Engine->SetCameraState(f.ComputeViewMatrix(), f.ComputeProjectionMatrix());
@@ -20,7 +21,7 @@ unsigned Nexus::Render::operator()()
     {
         m_Engine->SetCameraPath(this->CameraPath);
     }
-    // Storm
+    // Storm delegate
     {
         auto [stage, lock] = World::GetStageReadAccess();
         m_Engine->Render(stage->GetPseudoRoot(), this->Params);
@@ -84,4 +85,23 @@ void Nexus::Render::transform_to_camera()
     pxr::UsdGeomCamera cam(stage->GetPrimAtPath(this->CameraPath));
     this->transform_from(cam.GetCamera(this->Params.frame));
     LOG_EVENT("Transformation at {}", this->CameraPath.GetText());
+}
+
+void Nexus::Render::intersection()
+{
+    // TODO: Assume free camera only for now
+    const auto f = this->Camera.GetFrustum();
+    Engine::IntersectionResultVector results;
+    Engine::PickParams pickParams;
+    pickParams.resolveMode = pxr::TfToken("resolveNearestToCenter");
+    auto [stage, lock] = World::GetStageReadAccess();
+    const bool hit = m_Engine->TestIntersection(pickParams, f.ComputeViewMatrix(), f.ComputeProjectionMatrix(), stage->GetPseudoRoot(), this->Params, &results);
+    if (hit)
+    {
+        LOG_EVENT("HIT!");
+    }
+    else
+    {
+        LOG_ALERT("Missed!");
+    }
 }

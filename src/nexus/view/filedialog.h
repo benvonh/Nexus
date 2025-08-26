@@ -15,13 +15,21 @@ namespace Nexus
 {
     class Window;
 
-    class FileDialog : Logger<"File Dialogue">
+    class FileDialog
     {
         friend class Nexus::Window;
 
         using Callback = std::function<void(std::string, int)>;
 
     public:
+        ~FileDialog() noexcept(false)
+        {
+            if (s_Window == nullptr)
+                throw std::logic_error("FileDialog not initialized");
+
+            s_Window = nullptr;
+        }
+
         static constexpr SDL_DialogFileFilter USD_FILTER[] = {
             {"USD", "usd;usda;usdc;usdz"}};
 
@@ -83,14 +91,6 @@ namespace Nexus
             s_Window = window;
         }
 
-        ~FileDialog() noexcept(false)
-        {
-            if (s_Window == nullptr)
-                throw std::logic_error("FileDialog not initialized");
-
-            s_Window = nullptr;
-        }
-
         template <Thread THREAD>
         static void callback(void *_, const char *const *filelist, int filter) noexcept
         {
@@ -126,5 +126,7 @@ namespace Nexus
         static inline Callback s_Callback;
 
         static inline SDL_Window *s_Window = nullptr;
+
+        static inline Log s_Log;
     };
 }

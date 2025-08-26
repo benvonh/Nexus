@@ -35,47 +35,68 @@ namespace Nexus
     template <std::size_t N>
     struct MetaString
     {
-        char Text[N];
+        char String[N] = {};
 
-        consteval MetaString() noexcept = default;
+        consteval MetaString() = default;
 
-        consteval MetaString(const char (&str)[N]) noexcept
+        consteval MetaString(const char (&str)[N])
         {
-            std::copy_n(str, N, Text);
+            std::copy_n(str, N, this->String);
         }
 
-        consteval auto size() const noexcept { return N; }
+        consteval auto size() const { return N; }
 
-        consteval operator std::string_view() const noexcept
+        consteval operator std::string_view() const
         {
-            return std::string_view(Text, N - 1);
+            return std::string_view(this->String, N - 1);
+        }
+
+        constexpr char &operator[](std::size_t index)
+        {
+            return this->String[index];
+        }
+
+        constexpr char operator[](std::size_t index) const
+        {
+            return this->String[index];
         }
 
         template <std::size_t M>
-        consteval auto operator+(const char (&str)[M]) noexcept
+        consteval auto operator+(const MetaString<M> &other) const
         {
-            MetaString<N + M - 1> result{};
-            std::copy_n(Text, N - 1, result.Text);
-            std::copy_n(str, M, result.Text + N - 1);
+            MetaString<N + M - 1> result;
+            std::copy_n(this->String, N - 1, result.String);
+            std::copy_n(other.String, M, result.String + N - 1);
             return result;
         }
     };
 
     ///
-    /// @brief Non-member addition operator for MetaString.
-    /// @tparam N Length of string literal
-    /// @tparam M Length of MetaString
-    /// @param lhs A string literal
-    /// @param rhs A MetaString instance
-    /// @return The concatenated MetaString
+    /// @brief Concatenates a `MetaString` with a string literal.
+    /// @tparam N Length of the `MetaString`
+    /// @tparam M Length of the string literal
+    /// @param lhs The `MetaString` to concatenate
+    /// @param rhs The string literal to concatenate
+    /// @return The concatenated string as a `MetaString`
     ///
     template <std::size_t N, std::size_t M>
-    consteval auto operator+(const char (&lhs)[N], const MetaString<M> &rhs) noexcept
+    consteval auto operator+(const MetaString<N> &lhs, const char (&rhs)[M])
     {
-        MetaString<N + M - 1> result{};
-        std::copy_n(lhs, N, result.Text);
-        std::copy_n(rhs.Text, M, result.Text + N - 1);
-        return result;
+        return lhs + MetaString(rhs);
+    }
+
+    ///
+    /// @brief Concatenates a `MetaString` with a string literal.
+    /// @tparam N Length of the string literal
+    /// @tparam M Length of the `MetaString`
+    /// @param lhs The string literal to concatenate
+    /// @param rhs The `MetaString` to concatenate
+    /// @return The concatenated string as a `MetaString`
+    ///
+    template <std::size_t N, std::size_t M>
+    consteval auto operator+(const char (&lhs)[N], const MetaString<M> &rhs)
+    {
+        return MetaString(lhs) + rhs;
     }
 
     ///
@@ -206,9 +227,9 @@ namespace Nexus
         }
 
         [[nodiscard]]
-        auto &peek() noexcept
+        auto page()
         {
-            return m_Buffer[m_Index];
+            return WriteAccess(&m_Buffer[m_Index], &m_Mutex);
         }
 
         [[nodiscard]]

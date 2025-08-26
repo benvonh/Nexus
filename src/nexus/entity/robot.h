@@ -1,7 +1,6 @@
 #pragma once
 
 #include "nexus/entity/entity.h"
-#include "nexus/logging.h"
 
 #include "pxr/usd/usdGeom/xformOp.h"
 
@@ -16,7 +15,7 @@
 
 namespace Nexus
 {
-    class Robot : public Entity, LOGGER(Robot)
+    class Robot final : public Entity
     {
         struct Data
             : public Entity::Data,

@@ -1,13 +1,13 @@
 #include "window.h"
 #include "window_theme.h"
 
-#include "panel/log_history.h"
-#include "panel/menu_bar.h"
-
 #include "nexus/core/world.h"
 #include "nexus/entity/robot.h"
 #include "nexus/event/event_client.h"
 #include "nexus/event/viewport_capture_event.h"
+#include "nexus/logging.h"
+#include "nexus/view/panel/log_history.h"
+#include "nexus/view/panel/menu_bar.h"
 
 #include "imgui.h"
 #include "imgui_impl_sdl3.h"
@@ -41,7 +41,7 @@ void Nexus::Window::ViewportCaptureMode::set(SDL_Window *window)
         io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
     }
     m_Captured = CAPTURE;
-    LOG_EVENT("Viewport capture mode set to {}", CAPTURE);
+    LOG_EVENT("Viewport capture = {}", CAPTURE);
 }
 
 template void Nexus::Window::ViewportCaptureMode::set<true>(SDL_Window *);
@@ -60,16 +60,11 @@ Nexus::Window::Window()
     SDL_TRY(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                                 SDL_GL_CONTEXT_PROFILE_COMPATIBILITY));
 
-#ifdef _DEBUG
-    const char *title = "Nexus (Debug)";
-#else
-    const char *title = "Nexus (Release)";
-#endif
     constexpr auto flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE;
     constexpr auto center = SDL_WINDOWPOS_CENTERED;
 
     LOG_BASIC("Creating SDL window...");
-    m_Window = SDL_CreateWindow(title, 1280, 720, flags);
+    m_Window = SDL_CreateWindow("Nexus v0", 1280, 720, flags);
 
     SDL_TRY(m_Window != nullptr);
     SDL_TRY(SDL_SetWindowPosition(m_Window, center, center));
@@ -89,15 +84,13 @@ Nexus::Window::Window()
             m_ViewportCapture.set<true>(m_Window);
         });
 
-    m_FileDialog = new FileDialog(m_Window);
+    m_FileDialog.reset(new FileDialog(m_Window));
     m_MultiViewport.start_engine();
 }
 
 Nexus::Window::~Window() noexcept(false)
 {
     m_MultiViewport.stop_engine();
-
-    delete m_FileDialog;
 
     _destroy_layer();
 
@@ -161,18 +154,38 @@ void Nexus::Window::handle_events()
 {
     ImGuiIO &io = ImGui::GetIO();
 
+    SDL_Event event;
+
+    while (SDL_PollEvent(&event))
+    {
+        if (event.type == SDL_EVENT_QUIT ||
+            (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
+                event.window.windowID == SDL_GetWindowID(m_Window)))
+        {
+            m_Live = false;
+            return;
+        }
+
+        ImGui_ImplSDL3_ProcessEvent(&event);
+    }
+
     // NOTE(Ben): I admit defeat in trying to fix the bug
     // where the first mouse click (left as to capture viewport mode)
     // is not registered by SDL. A second click is needed for ImGUI to
     // react properly again.
     if (m_ViewportCapture)
     {
-        SDL_PumpEvents();
-        auto &render = m_MultiViewport.get_active_render();
+        // SDL_PumpEvents();
+        Render &render = m_MultiViewport.get_active_render();
 
         float x, y;
-        auto state = SDL_GetRelativeMouseState(&x, &y);
+        auto mouseState = SDL_GetRelativeMouseState(&x, &y);
         render.look(x, y, io.DeltaTime);
+
+        if (mouseState & SDL_BUTTON_LEFT)
+        {
+            render.intersection();
+        }
 
         const bool *keyboard = SDL_GetKeyboardState(nullptr);
 
@@ -206,23 +219,6 @@ void Nexus::Window::handle_events()
         {
             m_MultiViewport.no_capture();
             m_ViewportCapture.set<false>(m_Window);
-        }
-    }
-    else
-    {
-        SDL_Event event;
-
-        while (SDL_PollEvent(&event))
-        {
-            if (event.type == SDL_EVENT_QUIT ||
-                (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED &&
-                 event.window.windowID == SDL_GetWindowID(m_Window)))
-            {
-                m_Live = false;
-                return;
-            }
-
-            ImGui_ImplSDL3_ProcessEvent(&event);
         }
     }
 }

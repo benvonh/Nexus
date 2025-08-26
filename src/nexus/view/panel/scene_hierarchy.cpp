@@ -30,8 +30,8 @@ void Nexus::SceneHierarchy::draw()
 {
     if (ImGui::Begin("Scene Hierarchy"))
     {
-        uint8_t treeDepth = 0;
-        uint64_t treeStack = 0;
+        std::uint8_t treeDepth = 0;
+        std::uint64_t treeStack = 0;
 
         for (auto it = m_Range.cbegin(); it != m_Range.cend(); it++)
         {
@@ -44,7 +44,7 @@ void Nexus::SceneHierarchy::draw()
 
             if (it.IsPostVisit())
             {
-                if (treeStack & bit<uint64_t>(--treeDepth))
+                if (treeStack & nxs::bit<uint64_t>(--treeDepth))
                 {
                     ImGui::TreePop();
                 }
@@ -63,11 +63,11 @@ void Nexus::SceneHierarchy::draw()
 
                 if (open)
                 {
-                    treeStack |= bit<uint64_t>(treeDepth);
+                    treeStack |= nxs::bit<uint64_t>(treeDepth);
                 }
                 else
                 {
-                    treeStack &= ~bit<uint64_t>(treeDepth);
+                    treeStack &= ~nxs::bit<uint64_t>(treeDepth);
                     it.PruneChildren();
                 }
                 treeDepth++;
@@ -85,7 +85,7 @@ void Nexus::SceneHierarchy::draw()
                     m_ContextHash = flags & ImGuiTreeNodeFlags_Selected ? 0 : it->GetPath().GetHash();
                     EventClient::Send<ContextChangeEvent>(it->GetPrim());
                 }
-                treeStack &= ~bit<uint64_t>(treeDepth++);
+                treeStack &= ~nxs::bit<uint64_t>(treeDepth++);
             }
         }
     }

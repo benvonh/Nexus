@@ -1,14 +1,12 @@
 #pragma once
 
-#include "nexus/logging.h"
-
+#include <exception>
 #include <mutex>
 #include <thread>
-#include <exception>
 
 namespace Nexus
 {
-    class Application : Logger<"Application">
+    class Application final
     {
     public:
         Application(int argc, char **argv);

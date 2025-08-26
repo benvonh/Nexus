@@ -10,7 +10,7 @@ namespace Nexus
     {
         if (ImGui::Begin("Log History"))
         {
-            for (const auto &[text, type] : Log::Book::Get())
+            for (const auto [text, type] : Log::Book)
             {
                 switch (type)
                 {
@@ -29,7 +29,7 @@ namespace Nexus
                 }
                 ImGui::TextUnformatted(text);
             }
-            ImGui::PopStyleColor(Log::Book::Size());
+            ImGui::PopStyleColor(Log::Book.size());
         }
         ImGui::End();
     }

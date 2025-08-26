@@ -1,9 +1,10 @@
 #include "prim_property.h"
 
 #include "nexus/core/world.h"
-#include "nexus/event/event_client.h"
 #include "nexus/event/context_change_event.h"
+#include "nexus/event/event_client.h"
 #include "nexus/event/scene_reset_event.h"
+#include "nexus/logging.h"
 
 #include "pxr/base/gf/matrix4d.h"
 #include "pxr/usd/sdf/types.h"

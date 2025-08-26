@@ -1,6 +1,5 @@
 #pragma once
 
-#include "nexus/logging.h"
 #include "nexus/render/render.h"
 
 #include "pxr/usd/sdf/path.h"
@@ -15,7 +14,7 @@
 
 namespace Nexus
 {
-    class MultiViewport : Logger<"Multi-Viewport">
+    class MultiViewport final
     {
     public:
         MultiViewport();
@@ -26,7 +25,10 @@ namespace Nexus
         void draw();
 
         [[nodiscard]]
-        auto &get_active_render() { return m_Renders[m_Captured]; }
+        auto &get_active_render()
+        {
+            return m_Renders[m_Captured];
+        }
 
     private:
         void _draw_main_menu();
